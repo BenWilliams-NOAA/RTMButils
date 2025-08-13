@@ -1,4 +1,4 @@
-# note that the 2nd time period in the selectivity blocks is not scaled to one
+# note that the 2nd time period in the selectivity blocks is not scaled to one for POP
 # so have this add on to account for that
 
 #' @export
