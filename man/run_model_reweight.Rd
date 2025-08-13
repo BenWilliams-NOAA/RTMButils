@@ -4,7 +4,7 @@
 \alias{run_model_reweight}
 \title{Run model with iterative Francis reweighting for composition data}
 \usage{
-run_model_reweight(model, data, pars, iters = 10, threshold = 0.05, ...)
+run_model_reweight(model, data, pars, iters = 10, ...)
 }
 \arguments{
 \item{model}{The model function.}

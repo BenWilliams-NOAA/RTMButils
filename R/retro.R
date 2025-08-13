@@ -220,7 +220,43 @@ run_retro <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfol
 }
 
 
-
+#' Run a prospective analysis (peeling) for an RTMB stock assessment model.
+#'
+#' This function automates the process of prospective analysis. It iteratively
+#' removes historical years of data, refits the model, and generates diagnostic
+#' plots for specified quantities of interest. It is a complementary diagnostic
+#' to a retrospective analysis, providing insight into the model's sensitivity to
+#' historical data.
+#'
+#' @param rpt The output list from the `run_model()` function for the
+#'   full dataset. Must contain `obj` (from RTMB::MakeADFun) and `rpt` (the report).
+#' @param data A list of data objects used for the full model fit.
+#' @param pars A list of initial parameter values for the full model fit.
+#' @param model The R code object representing the model structure to be passed to RTMB::MakeADFun.
+#' @param n_peels The number of historical years to remove for the analysis (integer).
+#' @param year The assessment year, used for constructing file paths (e.g., 2024).
+#' @param folder The folder name for the model or type (e.g., "mgmt", "research"), used for file paths.
+#' @param subfolder An optional subfolder name for file paths (e.g., "m24"), default: NULL.
+#' @param quantities A character vector of variable names from the model report
+#'   to analyze (e.g., c("spawn_bio", "tot_bio", "recruits")).
+#' @param map A named list specifying the mapping for `RTMB::MakeADFun`.
+#' @param control A list of control parameters for the `nlminb` optimizer.
+#' @param save_outputs A logical flag. If TRUE, saves the prospective results
+#'   (.RDS) and plots (.png) to a 'retro' subfolder.
+#'
+#' @return A list containing two elements:
+#'   1. `prospect_data`: A tidy data frame with all estimates and standard errors from all peels.
+#'   2. `plots`: A named list of the generated ggplot objects.
+#'
+#' @details
+#' The function relies on the following packages: `RTMB`, `dplyr`, `purrr`,
+#' `ggplot2`, `patchwork`, `scico`, `tibble`, and `here`. Ensure they are installed.
+#' In contrast to a retrospective analysis, a prospective analysis "peels" off historical data
+#' to see how the model's estimates for key quantities evolve and stabilize with more data.
+#' It is a useful diagnostic for understanding how much the model's conclusions rely on early
+#' data points.
+#'
+#' @export
 run_prospective <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfolder = NULL,
                             quantities = c("spawn_bio", "tot_bio", "recruits"),
                             map = list(sigmaR = factor(NA)),
