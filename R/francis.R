@@ -51,7 +51,7 @@ calculate_francis_weight <- function(rpt, data, comp_type = "fish_size") {
 #' @param iters number of reweighting iterations.
 #' @param ... Other arguments to pass to run_model (map, lower, upper, random).
 #' @export
-run_model_reweight <- function(model, data, pars, iters = 10, threshold = 0.05, ...) {
+run_model_reweight <- function(model, data, pars, iters = 10, ...) {
 
   # initial weights (start with 1.0 if not specified) ---
   if(is.null(data$fish_age_wt)) data$fish_age_wt <- 1.0

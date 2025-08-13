@@ -10,6 +10,7 @@
 #'
 #' @export
 run_model <- function(model, data, pars, map=NULL, lower=NULL, upper=NULL, random = NULL) {
+  cmb = function(f, d) function(p) f(p, d)
   obj =  RTMB::MakeADFun(cmb(model, data),
                          pars,
                          map = map,
@@ -31,7 +32,8 @@ run_model <- function(model, data, pars, map=NULL, lower=NULL, upper=NULL, rando
                               eval.max=20000))
   rpt = obj$report(obj$env$last.par.best)
   proj = proj_bio(rpt) # function to project the next 2 years
-  list(obj=obj, fit=fit, rpt=rpt, proj=proj)
+  sd = sdreport(obj)
+  list(obj=obj, fit=fit, rpt=rpt, proj=proj, sd = sd)
 }
 
 
@@ -48,7 +50,7 @@ model_test <- function(m1, m2) {
 #' check Hessian is positive definite
 #' @export
 fit_check <- function(fit) {
-  sd_fit = sdreport(fit$obj)
+  sd_fit = fit$sd
   cat("Is the Hessian positive definite:", sd_fit$pdHess,
       "\nThe maximum gradiant is:", max(abs(fit$obj$gr(fit$fit$par))),
       "\nThe gradiant is < 1e-5:", max(abs(fit$obj$gr(fit$fit$par))) < 1e-5)
