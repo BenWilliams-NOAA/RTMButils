@@ -6,7 +6,8 @@
 
 The goal of RTMButils is to have a bunch of stock assessment functions for RTMB models in one place.
 Note that these won't necessarily work for complex RTMB model structures aka [SPoRC](https://github.com/chengmatt/SPoRC).
-Currently this is setup to work with GOA Pacific ocean perch and northern rockfish.
+Currently this is setup to work with GOA Pacific ocean perch and northern rockfish. 
+That is, the names in the [models](https://github.com/afsc-assessments/goa_pop/blob/main/2025/R/models.R) must align with the function names herein. 
 
 
 ## Installation
