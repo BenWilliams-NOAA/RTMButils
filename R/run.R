@@ -24,12 +24,14 @@ run_model <- function(model, data, pars, map=NULL, lower=NULL, upper=NULL, rando
                                 eval.max=20000),
                  lower = lower,
                  upper=upper)
-  }
+  } else {
   fit = nlminb(start = obj$par,
                objective = obj$fn,
                gradient = obj$gr,
                control = list(iter.max=100000,
                               eval.max=20000))
+  }
+
   rpt = obj$report(obj$env$last.par.best)
   proj = proj_bio(rpt) # function to project the next 2 years
   sd = sdreport(obj)
