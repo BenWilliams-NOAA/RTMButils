@@ -11,7 +11,8 @@ run_model(
   map = NULL,
   lower = NULL,
   upper = NULL,
-  random = NULL
+  random = NULL,
+  newton_loops = 3
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ run_model(
 \item{upper}{unnamed vector of upper parameter limits, default: NULL}
 
 \item{random}{vector of parameter(s) to be random effects, default: NULL}
+
+\item{newton_loops}{number of newton loops to run to reduce gradient: 3 - note only works for unconstrained models}
 }
 \description{
 Run RTMB model
