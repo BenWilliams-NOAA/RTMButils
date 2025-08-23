@@ -7,9 +7,10 @@
 #' @param lower unnamed vector of lower parameter limits, default: NULL
 #' @param upper unnamed vector of upper parameter limits, default: NULL
 #' @param random vector of parameter(s) to be random effects, default: NULL
+#' @param newton_loops number of newton loops to run to reduce gradient: 3 - note only works for unconstrained models
 #'
 #' @export
-run_model <- function(model, data, pars, map=NULL, lower=NULL, upper=NULL, random = NULL) {
+run_model <- function(model, data, pars, map=NULL, lower=NULL, upper=NULL, random = NULL, newton_loops = 3) {
   cmb = function(f, d) function(p) f(p, d)
   obj =  RTMB::MakeADFun(cmb(model, data),
                          pars,
@@ -24,6 +25,19 @@ run_model <- function(model, data, pars, map=NULL, lower=NULL, upper=NULL, rando
                                 eval.max=20000),
                  lower = lower,
                  upper=upper)
+
+      try_improve <- tryCatch({
+        for (i in 1:newton_loops) {
+          g <- as.numeric(obj$gr(fit$par))
+          h <- optimHess(fit$par, fn = obj$fn, gr = obj$gr)
+          fit$par <- fit$par - solve(h, g)
+          fit$objective <- obj$fn(fit$par)
+        }
+      }, error = function(e) {
+        # If it fails, print a warning and continue with the original fit
+        warning("Newton improvement step failed: ", e$message)
+      })
+
   } else {
   fit = nlminb(start = obj$par,
                objective = obj$fn,
