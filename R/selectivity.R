@@ -20,7 +20,7 @@ sel_logistic <- function(age, a50, delta, adj) {
   sel #= sel / max(sel)
 }
 
-#' standard MESA double logistic selectivity
+#' MESA gamma selectivity
 #'
 #' @param age age to examine
 #' @param a50 inflection point
@@ -28,7 +28,7 @@ sel_logistic <- function(age, a50, delta, adj) {
 #' @param adj based upon index that starts at 1 - unless adjusted to start at recruitment age
 #' doesn't really do anything other than scale
 #' @export
-sel_double_logistic <- function(age, a50, delta, adj) {
+sel_gamma <- function(age, a50, delta, adj) {
   expa50 = exp(a50)  # log scale for dome
   denom = 0.5 * (sqrt(expa50^2 + 4 * delta^2) - expa50)
   sel = (((age + adj) / expa50)^(expa50 / denom)) * exp((expa50 - (age + adj)) / denom)
