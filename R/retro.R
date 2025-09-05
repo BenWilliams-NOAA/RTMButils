@@ -36,7 +36,7 @@ run_retro <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfol
 
   # Setup and Load Base Model Components ---
   message("Starting retrospective analysis...")
-  retro_path <- herein(year, folder, "retro")
+  retro_path <- herein(year, folder, subfolder, "retro")
   if (save_outputs && !dir.exists(retro_path)) {
     dir.create(retro_path, recursive = TRUE)
   }
@@ -46,7 +46,7 @@ run_retro <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfol
   model <- model
 
   n_years <- length(data$srv_ind)
-  peel_indices <- (n_years - i + 1):n_years
+
 
   # Run Retrospective Peels ---
   message(paste("Running", n_peels, "retrospective peels..."))
@@ -56,6 +56,8 @@ run_retro <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfol
   for (i in 1:n_peels) {
     data <- d0
     pars <- p0
+
+    peel_indices <- (n_years - i + 1):n_years
 
     # Peel data based on the logic in the original script
     data$years <- head(d0$years, -i)
@@ -265,7 +267,7 @@ run_prospective <- function(rpt, data, pars, model, n_peels = 10, year, folder, 
 
   # Setup and Load Base Model Components ---
   message("Starting prospective analysis...")
-  retro_path <- herein(year, folder, subfolder, "retro")
+  retro_path <- herein(year, folder, subfolder, "prospective")
   if (save_outputs && !dir.exists(retro_path)) {
     dir.create(retro_path, recursive = TRUE)
   }
@@ -278,7 +280,7 @@ run_prospective <- function(rpt, data, pars, model, n_peels = 10, year, folder, 
 
 
   # Run Retrospective Peels ---
-  message(paste("Running", n_peels, "retrospective peels..."))
+  message(paste("Running", n_peels, "prospective peels..."))
   reps <- list()
   N_base_sum_catch <- sum(d0$catch_ind)
 
@@ -317,7 +319,7 @@ run_prospective <- function(rpt, data, pars, model, n_peels = 10, year, folder, 
 
   if (save_outputs) {
     saveRDS(reps, file.path(retro_path, 'reps.RDS'))
-    message(paste("Retrospective fits saved to:", file.path(retro_path, 'reps.RDS')))
+    message(paste("Prrospective fits saved to:", file.path(retro_path, 'reps.RDS')))
   }
 
   # --- 3. Process and Tidy All Outputs ---

@@ -22,6 +22,15 @@ get_likes <- function(rpt, model = "Model", addl=NULL, exclude=NULL) {
     row.names = NULL
   )
 
+  # create a new data frame row for the parameter count
+  pars_df <- data.frame(
+    item = "n_pars",
+    value = length(rpt$fit$par)
+  )
+
+  # Combine the two data frames
+  df <- rbind(df, pars_df)
+
   names(df)[names(df) == "value"] <- model
   df
 }
