@@ -66,9 +66,26 @@ run_retro <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfol
     data$catch_wt <- head(d0$catch_wt, -i)
 
     data$srv_ind[peel_indices] <- 0
-    data$fish_age_ind[peel_indices] <- 0
-    data$srv_age_ind[peel_indices] <- 0
-    data$fish_size_ind[peel_indices] <- 0
+    if (i + 2 <= n_years) {
+      peel_extra_2 <- (n_years - (i + 2) + 1):n_years
+      data$fish_age_ind[peel_extra_2] <- 0
+    } else {
+      # If peel removes all years, zero out the whole vector
+      data$fish_age_ind[] <- 0
+    }
+    # data$fish_age_ind[peel_indices] <- 0
+    # data$srv_age_ind[peel_indices] <- 0
+    # data$fish_size_ind[peel_indices] <- 0
+    if (i + 1 <= n_years) {
+      peel_extra_1 <- (n_years - (i + 1) + 1):n_years
+      data$srv_age_ind[peel_extra_1] <- 0
+      data$fish_size_ind[peel_extra_1] <- 0
+    } else {
+      # If peel removes all years, zero out the whole vector
+      data$srv_age_ind[] <- 0
+      data$fish_size_ind[] <- 0
+    }
+
 
     data <- lapply(data, unname)
 

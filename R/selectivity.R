@@ -36,7 +36,11 @@ sel_gamma <- function(age, a50, delta, adj) {
 }
 
 #' @export
-sel_double_normal <- function(age, a50, delta, adj = 0) {
-  sel <- exp(-((age + adj - a50)^2) / (2 * delta^2))
+sel_double_normal <- function(age, a50, delta, delta2, adj = 0) {
+  x_val = age + adj - a50
+  # delta for the ascending limb (left) and delta2 for the descending limb (right)
+  sel <- ifelse(x_val <= 0,
+                exp(-(x_val^2) / (2 * delta^2)),
+                exp(-(x_val^2) / (2 * delta2^2)))
   sel
 }
