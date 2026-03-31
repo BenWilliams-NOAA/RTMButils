@@ -10,14 +10,12 @@ to_one <- function(x) {
 #' standard MESA logistic selectivity
 #'
 #' @param age age to examine
-#' @param log_a50 inflection point
+#' @param a50 inflection point
 #' @param delta steepness of slope
 #' @param adj based upon index that starts at 1 - unless adjusted to start at recruitment age
 #' doesn't really do anything other than scale
 #' @export
-sel_logistic <- function(age, log_a50, log_delta, adj=0) {
-  a50 = exp(log_a50)
-  delta = exp(log_delta)
+sel_logistic <- function(age, a50, delta, adj=0) {
   x = age + adj
   sel = 1 / (1 + exp(-log(19) * (x - a50) / delta))
   # sel = sel / max(sel)
@@ -27,14 +25,12 @@ sel_logistic <- function(age, log_a50, log_delta, adj=0) {
 #' MESA gamma selectivity
 #'
 #' @param age age to examine
-#' @param log_b50 peak point
+#' @param b50 peak point
 #' @param delta steepness of slope
 #' @param adj based upon index that starts at 1 - unless adjusted to start at recruitment age
 #' doesn't really do anything other than scale
 #' @export
-sel_gamma <- function(age, log_b50, log_delta, adj=0) {
-  b50 = exp(log_b50)
-  delta = exp(log_delta)
+sel_gamma <- function(age, b50, delta, adj=0) {
   x = age + adj
   denom = 0.5 * (sqrt(b50^2 + 4 * delta^2) - b50)
   sel = ((x / b50)^(b50 / denom)) * exp((b50 - x) / denom)
@@ -43,41 +39,23 @@ sel_gamma <- function(age, log_b50, log_delta, adj=0) {
 }
 
 #' @export
-sel_double_normal <- function(age, log_a50, log_delta, log_delta2, adj = 0) {
-  a50 = exp(log_a50)
-  delta = exp(log_delta)
-  delta2 = exp(log_delta2)
-  x = age + adj - a50
-  # delta for the ascending limb (left) and delta2 for the descending limb (right)
-  sel <- ifelse(x <= 0,
-                exp(-(x^2) / (2 * delta^2)),
-                exp(-(x^2) / (2 * delta2^2)))
-  # sel = sel / max(sel)
-  sel
-}
+sel_double_normal <- function(age, a50_a, a50_d, delta, delta2, adj = 0) {
 
-#' @export
-sel_double_logistic <- function(age, log_a50_a, log_delta, log_a50_d, log_delta2, adj = 0) {
-  a50_a = exp(log_a50_a)
-  a50_d = exp(log_a50_d)
-  delta = exp(log_delta)
-  delta2 = exp(log_delta2)
+  a50d = a50a + a50_d # plateu width
   x = age + adj
-  # ascending limb
-  asc = 1 / (1 + exp(-delta * (x - a50_a)))
-  # escending limb
-  desc = 1 / (1 + exp(delta2 * (x - a50_d)))
-  sel = asc * desc
+  # delta for the ascending limb (left) and delta2 for the descending limb (right)
+  sel = ifelse(x <= a50a,
+                exp(-((x - a50a)^2 / (2 * delta^2))),
+                ifelse(x <= a50d,
+                        1.0,
+                        exp(-((x - a50d)^2 / (2 * delta2^2)))))                  
   # sel = sel / max(sel)
   sel
 }
 
 #' @export
-sel_double_logistic_smooth <- function(age, log_a50_a, log_delta, log_a50_d, log_delta2, adj = 0) {
-  a50_a = exp(log_a50_a)
-  a50_d = a50_a + exp(log_a50_d)
-  delta = exp(log_delta)
-  delta2 = exp(log_delta2)
+sel_double_logistic <- function(age, a50_a, delta, a50_d, delta2, adj = 0) {
+  a50_d = a50_a + a50_d
   x = age + adj
   # ascending limb
   asc = 1 / (1 + exp(-delta * (x - a50_a)))
@@ -104,12 +82,8 @@ get_slx <- function(ages, type, pars, adj) {
       sel_double_normal(ages, pars[1], pars[2], pars[3], adj)
     },
     "4" = {
-      # double logistic: pars[1] = log_a50_a, pars[2] = delta, pars[3] = log_a50_d, pars[4] = log_delta2
+      # double logistic: pars[1] = a50_a, pars[2] = delta, pars[3] = a50_d, pars[4] = delta2
       sel_double_logistic(ages, pars[1], pars[2], pars[3], pars[4], adj)
-    },
-    "5" = {
-      # double logistic smoothed: pars[1] = log_a50_a, pars[2] = delta, pars[3] = log_a50_d, pars[4] = log_delta2
-      sel_double_logistic_smooth(ages, pars[1], pars[2], pars[3], pars[4], adj)
     }
   )
 }
