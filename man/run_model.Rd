@@ -9,6 +9,7 @@ run_model(
   data,
   pars,
   map = NULL,
+  proj = TRUE,
   lower = NULL,
   upper = NULL,
   random = NULL,
@@ -23,6 +24,8 @@ run_model(
 \item{pars}{named parameter list}
 
 \item{map}{named mapping list, default: NULL}
+
+\item{proj}{whether to run the projection module: TRUE}
 
 \item{lower}{unnamed vector of lower parameter limits, default: NULL}
 

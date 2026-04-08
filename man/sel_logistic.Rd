@@ -4,7 +4,7 @@
 \alias{sel_logistic}
 \title{standard MESA logistic selectivity}
 \usage{
-sel_logistic(age, a50, delta, adj)
+sel_logistic(age, a50, delta, adj = 0)
 }
 \arguments{
 \item{age}{age to examine}

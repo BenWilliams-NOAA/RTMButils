@@ -42,7 +42,7 @@ osa <- function(obs, pred, iss, yrs, ind, label = 'Age', outlier) {
   df %>%
     ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = value, shape = Outlier) ) +
     geom_point(show.legend=TRUE) +
-    ggplot2::scale_size_area(guide=F, max_size = 3) +
+    ggplot2::scale_size_area(guide="none", max_size = 3) +
     scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
     afscassess::scale_y_tickr(data = df, var = ind, start=0) +
     afscassess::scale_x_tickr(data = df, var = year) +
@@ -67,8 +67,8 @@ osa <- function(obs, pred, iss, yrs, ind, label = 'Age', outlier) {
 #' @param iss input sample size
 #' @param yrs comp years
 #' @param ind vector or ages of lengths
+#' @param outlier mark point as outlier if greater than
 #' @param label axis label
-#' @param outlier mark point as outlier if greater than. eg., 3
 #'
 #' @export
 #'
@@ -99,7 +99,7 @@ pearson <- function(obs, pred, iss, yrs, ind, outlier, label) {
   df %>%
     ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = value, shape = Outlier) ) +
     ggplot2::geom_point(show.legend=TRUE) +
-    ggplot2::scale_size_area(guide=F, max_size = 3) +
+    ggplot2::scale_size_area(guide="none", max_size = 3) +
     scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
     afscassess::scale_y_tickr(data = df, var = ind) +
     afscassess::scale_x_tickr(data = df, var = year) +
@@ -297,9 +297,10 @@ sample_size <- function(obs, pred, iss, yrs){
 #'  fish_age_resids$osa + ggtitle('osa fishery age comp residuals')
 #' }
 resids <- function(obs, pred, iss, outlier = 3, yrs, ind, label = 'Age') {
-  list(osa = osa(obs, pred, iss, yrs, ind, label, outlier)$osa,
-       qq = osa(obs, pred, iss, yrs, ind, label, outlier)$qq,
-       pearson = pearson(obs, pred, iss, yrs, ind, label, outlier),
+  osa_obj = osa(obs, pred, iss, yrs, ind, label, outlier)
+  list(osa = osa_obj$osa,
+       qq = osa_obj$qq,
+       pearson = pearson(obs, pred, iss, yrs, ind, outlier, label),
        agg = agg(obs, pred, ind, label),
        annual = annual(obs, pred, ind, yrs, label),
        ss = sample_size(obs, pred, iss, yrs) )

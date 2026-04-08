@@ -17,7 +17,7 @@ pearson(obs, pred, iss, yrs, ind, outlier, label)
 
 \item{ind}{vector or ages of lengths}
 
-\item{outlier}{mark point as outlier if greater than. eg., 3}
+\item{outlier}{mark point as outlier if greater than}
 
 \item{label}{axis label}
 }

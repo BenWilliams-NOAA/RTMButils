@@ -4,12 +4,12 @@
 \alias{sel_gamma}
 \title{MESA gamma selectivity}
 \usage{
-sel_gamma(age, a50, delta, adj)
+sel_gamma(age, b50, delta, adj = 0)
 }
 \arguments{
 \item{age}{age to examine}
 
-\item{a50}{inflection point}
+\item{b50}{peak point}
 
 \item{delta}{steepness of slope}
 
