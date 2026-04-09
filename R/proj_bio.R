@@ -49,8 +49,8 @@ proj_bio <- function(report, Tproj=2) {
       F40_proj[t] = F40
       F35_proj[t] = F35
     } else {
-      F40_proj[t] = F40_proj[t] * (spawn_bio[t] / B40 - 0.05) / 0.95
-      F35_proj[t] = F35_proj[t] * (spawn_bio[t] / B40 - 0.05) / 0.95
+      F40_proj[t] = F40 * (spawn_bio[t] / B40 - 0.05) / 0.95
+      F35_proj[t] = F35 * (spawn_bio[t] / B40 - 0.05) / 0.95
     }
     # update Fs
     Fabc_tot = slx * F40_proj[t]
