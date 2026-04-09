@@ -19,6 +19,7 @@ sel_logistic <- function(age, a50, delta, adj=0) {
   x = age + adj
   sel = 1 / (1 + exp(-log(19) * (x - a50) / delta))
   sel / max(sel)
+  # sel
 }
 
 #' MESA gamma selectivity
@@ -34,6 +35,7 @@ sel_gamma <- function(age, b50, delta, adj=0) {
   denom = 0.5 * (sqrt(b50^2 + 4 * delta^2) - b50)
   sel = ((x / b50)^(b50 / denom)) * exp((b50 - x) / denom)
   sel / max(sel)
+  # sel
 }
 
 #' @export
@@ -46,8 +48,9 @@ sel_double_normal <- function(age, a50a, a50d, delta, delta2, adj = 0) {
                 exp(-((x - a50a)^2 / (2 * delta^2))),
                 ifelse(x <= a50d,
                         1.0,
-                        exp(-((x - a50d)^2 / (2 * delta2^2)))))                  
+                        exp(-((x - a50d)^2 / (2 * delta2^2)))))
   sel / max(sel)
+  # sel
 }
 
 #' @export
@@ -60,6 +63,7 @@ sel_double_logistic <- function(age, a50a, delta, a50d, delta2, adj = 0) {
   desc = 1 / (1 + exp(delta2 * (x - a50d)))
   sel = asc * desc
   sel / max(sel)
+  # sel
 }
 
 #' @export
