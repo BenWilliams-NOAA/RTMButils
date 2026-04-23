@@ -40,18 +40,30 @@ sel_gamma <- function(age, b50, delta, adj=0) {
 
 #' @export
 sel_double_normal <- function(age, a50a, a50d, delta, delta2, adj = 0) {
-
-  a50d = a50a + a50d # plateu width
+  a50d = a50a + a50d # plateau width
   x = age + adj
-  # delta for the ascending limb (left) and delta2 for the descending limb (right)
-  sel = ifelse(x <= a50a,
-                exp(-((x - a50a)^2 / (2 * delta^2))),
-                ifelse(x <= a50d,
-                        1.0,
-                        exp(-((x - a50d)^2 / (2 * delta2^2)))))
-  sel / max(sel)
-  # sel
+  # ascending limb distance (only non-zero when x < a50a)
+  dist1 = (x - a50a - abs(x - a50a)) / 2
+  # descending limb distance (only non-zero when x > a50d)
+  dist2 = (x - a50d + abs(x - a50d)) / 2
+  sel = exp(-((dist1^2) / (2 * delta^2)) - ((dist2^2) / (2 * delta2^2)))
+  sel 
 }
+
+
+# sel_double_normal <- function(age, a50a, a50d, delta, delta2, adj = 0) {
+
+#   a50d = a50a + a50d # plateu width
+#   x = age + adj
+#   # delta for the ascending limb (left) and delta2 for the descending limb (right)
+#   sel = ifelse(x <= a50a,
+#                 exp(-((x - a50a)^2 / (2 * delta^2))),
+#                 ifelse(x <= a50d,
+#                         1.0,
+#                         exp(-((x - a50d)^2 / (2 * delta2^2)))))
+#   sel / max(sel)
+#   # sel
+# }
 
 #' @export
 sel_double_logistic <- function(age, a50a, delta, a50d, delta2, adj = 0) {

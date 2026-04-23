@@ -96,6 +96,7 @@ run_retro <- function(rpt, data, pars, model, n_peels = 10, year, folder, subfol
     pars <- lapply(pars, unname)
 
     # Refit model for the peel
+    cmb = function(f, d) function(p) f(p, d)
     obj <- RTMB::MakeADFun(cmb(model, data), pars, map = map, silent = TRUE)
     fit <- nlminb(start = obj$par,
                   objective = obj$fn,
