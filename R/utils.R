@@ -46,12 +46,13 @@ herein <- function(...) {
 #'
 #' @param pars list of named parameters
 #' @param jitter_amt how much to jitter
+#' @param map vector of parameters that will be mapped
 #' @param seed for reproducibility, default: NULL
 #'
 #' @returns list of named, jittered parameters
 #' @export
 #'
-jitter_pars <- function(pars, jitter_amt = 0.1, seed = NULL) {
+jitter_pars <- function(pars, map = NULL, jitter_amt = 0.1, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
 
   jitter_value = function(x, jitter_amt) {
@@ -61,11 +62,19 @@ jitter_pars <- function(pars, jitter_amt = 0.1, seed = NULL) {
       return(x + rnorm(1, mean = 0, sd = jitter_amt))
     }
   }
-  # Apply jitter to each parameter
-  jits = lapply(pars, function(p) jitter_value(p, jitter_amt))
+  # apply jitter to each parameter
+  jits = lapply(names(pars), function(p_name) {
+    # if the parameter is in the map, return it unchanged
+    if (!is.null(map) && (p_name %in% map || p_name %in% names(map))) {
+      return(pars[[p_name]])
+    } else {
+      return(jitter_value(pars[[p_name]], jitter_amt))
+    }
+  })
 
-  # Preserve names
+  # preserve names
   names(jits) <- names(pars)
   return(jits)
 
 }
+
