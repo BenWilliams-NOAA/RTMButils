@@ -3,18 +3,19 @@
 #' @param par_name parameter to profile (e.g., "log_M")
 #' @param par_values values to profile the parameter over
 #' @param derived character vector of derived quantity likelihoods to extract from report
-#' @param data input data to RTMB model
-#' @param map any other parameters that are fixed
-#' @param obj RTMB model object function (from your original model_fn)
-#' @param fit Original fit from rtmb::fit()
-#' @param data The data input used in the model
-#' @param model The model to fit the data to
+#' @param output RTMButils::run_model output
 #'
 #' @return A data frame with parameter value, log-likelihood, and derived values
 #' @export
 profiles <- function(par_name = "log_M", par_values = log(seq(0.03, 0.1, 0.005)),
-                     derived = c("like_fish_age", "like_srv_age"),
+                     derived = c("like_fish_age", "like_srv_age", "like_srv", "like_fish_size"),
                      data, map = NULL, obj, fit, model) {
+
+  dat = output$dat
+  obj = output$obj
+  map = obj$env$map
+  fit = output$fit
+  f = output$model
 
   results <- data.frame(value = par_values,
                         log_like = NA_real_,
@@ -29,10 +30,11 @@ profiles <- function(par_name = "log_M", par_values = log(seq(0.03, 0.1, 0.005))
   # put any mapped items back into the pars
   if(!is.null(map)) {
     pars[[names(map)]] = obj$report()[[names(map)]]
-  }
-  # create map if none provided
-  if(is.null(map)) {
-    map = list()
+  } else {
+    # create map if none provided
+    if(is.null(map)) {
+      map = list()
+    }
   }
   map[[par_name]] = factor(NA)
 
@@ -44,12 +46,13 @@ profiles <- function(par_name = "log_M", par_values = log(seq(0.03, 0.1, 0.005))
     pars_i[[par_name]] <- par_values[i]
 
     # rebuild obj with fixed parameter
-    obj_i  = RTMB::MakeADFun(cmb(model, data),,
+    obj_i  = RTMB::MakeADFun(cmb(f, dat),,
                              parameters = pars_i,
                              map = map)
 
-    # optimize the rest
-    fit_i <- nlminb(start = obj_i$par,
+    # optimize
+    if (i == 1) start_vals = obj_i$par else start_vals = fit_i$par
+    fit_i <- nlminb(start = start_vals,
                     objective = obj_i$fn,
                     gradient = obj_i$gr,
                     control = list(iter.max = 100000, eval.max = 20000))
