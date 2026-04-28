@@ -17,6 +17,7 @@ Imports:
     magrittr,
     purrr,
     scico,
+    stats,
     tibble,
     tidyr
 Remotes:

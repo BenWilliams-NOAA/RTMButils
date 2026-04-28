@@ -4,10 +4,12 @@
 \alias{jitter_pars}
 \title{Jitter parameters}
 \usage{
-jitter_pars(pars, jitter_amt = 0.1, seed = NULL)
+jitter_pars(pars, map = NULL, jitter_amt = 0.1, seed = NULL)
 }
 \arguments{
 \item{pars}{list of named parameters}
+
+\item{map}{vector of parameters that will be mapped}
 
 \item{jitter_amt}{how much to jitter}
 

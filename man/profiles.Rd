@@ -7,7 +7,7 @@
 profiles(
   par_name = "log_M",
   par_values = log(seq(0.03, 0.1, 0.005)),
-  derived = c("like_fish_age", "like_srv_age"),
+  derived = c("like_fish_age", "like_srv_age", "like_srv", "like_fish_size"),
   data,
   map = NULL,
   obj,
@@ -22,15 +22,7 @@ profiles(
 
 \item{derived}{character vector of derived quantity likelihoods to extract from report}
 
-\item{data}{The data input used in the model}
-
-\item{map}{any other parameters that are fixed}
-
-\item{obj}{RTMB model object function (from your original model_fn)}
-
-\item{fit}{Original fit from rtmb::fit()}
-
-\item{model}{The model to fit the data to}
+\item{output}{RTMButils::run_model output}
 }
 \value{
 A data frame with parameter value, log-likelihood, and derived values
