@@ -164,3 +164,6 @@ check_bounds <- function(output, tol = 0.001) {
     print(data.frame(Param = names(est)[at_upp], Value = est[at_upp], Bound = upp[at_upp]))
   } else { cat("None at upper bound.\n") }
 }
+
+
+cmb = function(f, d) function(p) f(p, d)

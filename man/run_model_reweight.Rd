@@ -4,18 +4,12 @@
 \alias{run_model_reweight}
 \title{Run model with iterative Francis reweighting for composition data}
 \usage{
-run_model_reweight(model, data, pars, iters = 10, ...)
+run_model_reweight(output, iters = 10, ...)
 }
 \arguments{
-\item{model}{The model function.}
-
-\item{data}{The initial named data list.}
-
-\item{pars}{The initial named parameter list.}
+\item{output}{The output from RTMButils::run_model() that contains the model, named data list, and named parameter list.}
 
 \item{iters}{number of reweighting iterations.}
-
-\item{...}{Other arguments to pass to run_model (map, lower, upper, random).}
 }
 \description{
 Run model with iterative Francis reweighting for composition data

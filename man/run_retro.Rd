@@ -5,23 +5,17 @@
 \title{Run a retrospective analysis (peeling) for an RTMB stock assessment model.}
 \usage{
 run_retro(
-  rpt,
-  data,
-  pars,
-  model,
+  output,
   n_peels = 10,
   year,
   folder,
   subfolder = NULL,
   quantities = c("spawn_bio", "tot_bio", "recruits"),
-  map = list(sigmaR = factor(NA)),
-  control = list(iter.max = 1e+05, eval.max = 20000),
   save_outputs = TRUE
 )
 }
 \arguments{
-\item{rpt}{The output list from the `run_model()` function for the
-full dataset. Must contain `obj` (from RTMB::MakeADFun) and `rpt` (the report)}
+\item{output}{Results from RTMButils::run_model}
 
 \item{n_peels}{The number of retrospective peels to perform (integer)}
 
@@ -33,10 +27,6 @@ full dataset. Must contain `obj` (from RTMB::MakeADFun) and `rpt` (the report)}
 
 \item{quantities}{A character vector of variable names from the model report
 to analyze (e.g., c("spawn_bio", "tot_bio", "recruits"))}
-
-\item{map}{A named list specifying the mapping for `RTMB::MakeADFun`}
-
-\item{control}{A list of control parameters for the `nlminb` optimizer}
 
 \item{save_outputs}{A logical flag. If TRUE, saves the retrospective results
 (.RDS) and plots (.png) to a 'retro' subfolder}

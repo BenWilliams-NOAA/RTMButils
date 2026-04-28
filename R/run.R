@@ -41,7 +41,6 @@ solve_Fx <- function(target, M, slx, wt_mat, sp_fract, A, SB0_val) {
 #'
 #' @export
 run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, upper=NULL, random = NULL, newton_loops = 3) {
-  cmb = function(f, d) function(p) f(p, d)
   obj =  RTMB::MakeADFun(cmb(model, data),
                          pars,
                          map = map,

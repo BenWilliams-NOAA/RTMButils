@@ -25,18 +25,14 @@ calculate_francis_weight <- function(rpt, data, comp_type = "fish_size") {
   pred_mean = apply(pred, 2, function(x) sum(x * bins) / (sum(x) + epsilon))
 
   # variance of the predicted distribution for each year
-  pred_var_dist <- apply(pred, 2, function(p) {
-    mean_p = sum(p * bins) / (sum(p) + epsilon)
-    var_p = sum(p * bins^2) / (sum(p) + epsilon) - mean_p^2
-    return(var_p)
-  })
+  pred_var_dist = colSums(pred * bins^2) / (colSums(pred) + epsilon) - pred_mean^2
 
   # standardized residuals ---
   # expected standard error of the mean for each year
-  sem = sqrt(pred_var_dist / iss)
+  sem = sqrt(pmax(pred_var_dist, 0) / iss)
   std_residuals = (obs_mean - pred_mean) / (sem + epsilon)
 
-  # final multiplier ---
+  # final multiplier (Francis TA1.8)---
   # the new weight is 1 / variance of the standardized residuals
   multiplier = 1 / var(std_residuals, na.rm = TRUE)
 
@@ -45,21 +41,27 @@ calculate_francis_weight <- function(rpt, data, comp_type = "fish_size") {
 
 #' Run model with iterative Francis reweighting for composition data
 #'
-#' @param model The model function.
-#' @param data The initial named data list.
-#' @param pars The initial named parameter list.
+#' @param output The output from RTMButils::run_model() that contains the model, named data list, and named parameter list.
 #' @param iters number of reweighting iterations.
-#' @param ... Other arguments to pass to run_model (map, lower, upper, random).
-#' @export
-run_model_reweight <- function(model, data, pars, iters = 10, ...) {
 
-  # initial weights (start with 1.0 if not specified) ---
+#' @export
+run_model_reweight <- function(output, iters = 10, ...) {
+  data = output$dat
+  map = output$obj$env$map
+  fit = output$fit
+  model = output$model
+  lower = fit$lower
+  upper = fit$upper
+  nms = unique(names(fit$par))
+  split_list = split(fit$par, names(fit$par))
+  pars = lapply(split_list, unname)
+  pars = pars[nms]
+
+  # initial weights (start with 1.0 if not specified)
   if(is.null(data$fish_age_wt)) data$fish_age_wt <- 1.0
   if(is.null(data$srv_age_wt)) data$srv_age_wt <- 1.0
   if(is.null(data$fish_size_wt)) data$fish_size_wt <- 1.0
 
-
-  # store the history of weights
   weight_history <- data.frame(
     iteration = 0,
     fish_age_wt = data$fish_age_wt,
@@ -77,11 +79,11 @@ run_model_reweight <- function(model, data, pars, iters = 10, ...) {
     cat("  Fishery Size:", data$fish_size_wt, "\n")
 
     # run the model with the current weights
-    current_run <- run_model(model = model, data = data, pars = pars, ...)
+    new_run = run_model(model = model, data = data, pars = pars, map = map, lower=lower, upper=upper)
 
-    mult_fa = calculate_francis_weight(current_run$rpt, data, "fish_age")
-    mult_sa = calculate_francis_weight(current_run$rpt, data, "srv_age")
-    mult_fs = calculate_francis_weight(current_run$rpt, data, "fish_size")
+    mult_fa = calculate_francis_weight(new_run$rpt, data, "fish_age")
+    mult_sa = calculate_francis_weight(new_run$rpt, data, "srv_age")
+    mult_fs = calculate_francis_weight(new_run$rpt, data, "fish_size")
 
     # check for Inf/NaN and reset to 1.0 (no change) while issuing a warning
     if (!is.finite(mult_fa)) { cat("  -- Warning: Fishery Age multiplier is Inf/NaN, resetting to 1.0\n"); mult_fa <- 1.0 }
@@ -100,12 +102,16 @@ run_model_reweight <- function(model, data, pars, iters = 10, ...) {
     data$fish_size_wt <- mult_fs
 
     # update history
-    weight_history[i + 1, ] = c(i, data$fish_age_wt, data$srv_age_wt, data$fish_size_wt)
+    weight_history[i+1, ] = c(i, data$fish_age_wt, data$srv_age_wt, data$fish_size_wt)
+
+    # update pars for next iteration
+    split_list = split(new_run$fit$par, names(new_run$fit$par))
+    pars = lapply(split_list, unname)[nms]
 
   }
 
   cat("\n--- Reweighting process finished. ---\n")
   print(weight_history)
 
-  return(current_run)
+  return(new_run)
 }

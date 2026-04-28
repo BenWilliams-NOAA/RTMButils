@@ -1,15 +1,14 @@
 #' Profile a parameter using RTMB with re-optimization
 #'
+#' @param output RTMButils::run_model output
 #' @param par_name parameter to profile (e.g., "log_M")
 #' @param par_values values to profile the parameter over
 #' @param derived character vector of derived quantity likelihoods to extract from report
-#' @param output RTMButils::run_model output
 #'
 #' @return A data frame with parameter value, log-likelihood, and derived values
 #' @export
-profiles <- function(par_name = "log_M", par_values = log(seq(0.03, 0.1, 0.005)),
-                     derived = c("like_fish_age", "like_srv_age", "like_srv", "like_fish_size"),
-                     data, map = NULL, obj, fit, model) {
+profiles <- function(output, par_name = "log_M", par_values = log(seq(0.03, 0.1, 0.005)),
+                     derived = c("like_fish_age", "like_srv_age", "like_srv", "like_fish_size")) {
 
   dat = output$dat
   obj = output$obj
@@ -95,7 +94,9 @@ plot_profile <- function(data, exp = FALSE) {
     ylab("Change in -log likelihood")
 }
 
-check_model_fits <- function(fit, pars) {
+check_model_fits <- function(object) {
+  fit = object$fit
+  obj = object$obj
   # Basic convergence info
   cat("=== Convergence Information ===\n")
   cat("Convergence code:", fit$convergence, "\n")
@@ -105,12 +106,16 @@ check_model_fits <- function(fit, pars) {
 
   # Parameter bounds check
   cat("=== Parameter Bounds Check ===\n")
+  if(is.null(fit$lower) & is.null(fit$upper)) {
+    message("No bounds found in the model fit object \n\n")
+  } else {
   at_bounds = which(abs(fit$par - unlist(lower)) < 1e-5 |
                        abs(fit$par - unlist(upper)) < 1e-5)
   if(length(at_bounds) > 0) {
     cat("Parameters at bounds:", names(fit$par)[at_bounds], "\n\n")
   } else {
     cat("No parameters at bounds\n\n")
+  }
   }
 
   # Gradient check
@@ -119,14 +124,14 @@ check_model_fits <- function(fit, pars) {
   max_grad = max(abs(final_grad))
   cat("Maximum absolute gradient:", max_grad, "\n")
   if(max_grad > 0.001) {
-    cat("WARNING: Large gradients present\n\n")
+    cat("WARNING: Large gradients present: > 0.001\n\n")
   }
 
   # Compare initial vs final values
   cat("=== Parameter Changes ===\n")
   initial = unlist(pars)
   final = fit$par
-  rel_change = abs((final - initial)/initial)
+  rel_change = abs((final - initial)/(initial+.00000001))
   changed = which(rel_change > 0.5)
   if(length(changed) > 0) {
     changes_df = data.frame(Parameter = names(initial)[changed],
