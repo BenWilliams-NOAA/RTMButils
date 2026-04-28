@@ -75,11 +75,12 @@ plot_biomass <- function(year, output, folder, save=TRUE) {
   summary(output$sd, "report") %>%
     as.data.frame() %>%
     tibble::rownames_to_column("item")  %>%
-    mutate(lci = Estimate - 1.96*`Std. Error`,
-           uci = Estimate + 1.96*`Std. Error`) %>%
-    mutate(item = gsub("\\..*", "", item),
-           year = c( data$years, data$srv_yrs, rep(data$years, 3))) %>%
-    dplyr::select(year, item, value = Estimate, se = `Std. Error`, lci, uci) -> df
+    tidytable::mutate(lci = Estimate - 1.96*`Std. Error`,
+                      uci = Estimate + 1.96*`Std. Error`) %>%
+    tidytable::mutate(item = gsub("\\..*", "", item)) %>%
+    tidytable::filter(item %in% vars) %>%
+    tidytable::mutate(year = rep(data$years, length(vars))) %>%
+    tidytable::select(year, item, value = Estimate, se = `Std. Error`, lci, uci) -> df
 
   df %>%
     tidytable::filter(item  %in% c('spawn_bio', 'tot_bio')) %>%
@@ -117,7 +118,7 @@ plot_biomass <- function(year, output, folder, save=TRUE) {
 #' plot_age_comps(year, output, folder, type = "fishery")
 plot_age_comps <- function(year, output, folder, save = TRUE, type) {
   if (!dir.exists(here::here(year, folder, "figs"))){
-    create.dir(here::here(year, folder, "figs"))
+    dir.create(here::here(year, folder, "figs"))
   }
   # set view
   ggplot2::theme_set(afscassess::theme_report())
@@ -185,7 +186,7 @@ plot_age_comps <- function(year, output, folder, save = TRUE, type) {
 #' plot_size_comps(year, output, folder, type = "fishery")
 plot_size_comps <- function(year, output, folder, save = TRUE, type) {
   if (!dir.exists(here::here(year, folder, "figs"))){
-    create.dir(here::here(year, folder, "figs"))
+    dir.create(here::here(year, folder, "figs"))
   }
   # set view
   ggplot2::theme_set(afscassess::theme_report())
