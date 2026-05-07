@@ -312,10 +312,10 @@ sample_size <- function(obs, pred, iss, yrs){
 #'                          yrs = fish_age_yrs, ind = ages)
 #'  fish_age_resids$osa + ggtitle('osa fishery age comp residuals')
 #' }
-resids <- function(obs, pred, iss, outlier = 3, yrs, ind, label = 'Age') {
+resids <- function(obs, pred, iss, outlier = 3, yrs, ind, label = 'Age', addCI = TRUE) {
   osa_obj = osa(obs, pred, iss, yrs, ind, label, outlier)
   list(osa = osa_obj$osa,
-       qq = osa_obj$qq,
+       qq = qq(obs, pred, iss, yrs, label, addCI = addCI),
        pearson = pearson(obs, pred, iss, yrs, ind, outlier, label),
        agg = agg(obs, pred, ind, label),
        annual = annual(obs, pred, ind, yrs, label),
