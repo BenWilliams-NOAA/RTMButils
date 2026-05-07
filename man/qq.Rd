@@ -16,6 +16,8 @@ qq(obs, pred, iss, yrs, label)
 \item{yrs}{comp years}
 
 \item{label}{axis label}
+
+\item{addCI}{boolean to include 95% confidence intervals on the SDNR label}
 }
 \description{
 one-step ahead residuals qq plot for RTMB model

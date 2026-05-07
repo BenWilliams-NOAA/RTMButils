@@ -117,7 +117,8 @@ pearson <- function(obs, pred, iss, yrs, ind, outlier, label) {
 #' @param iss input sample size
 #' @param yrs comp years
 #' @param label axis label
-#'
+#' @param addCI boolean to include 95% confidence intervals on the SDNR label
+#' 
 #' @export
 #'
 #' @examples
@@ -138,12 +139,27 @@ qq <- function(obs, pred, iss, yrs, label) {
   df = as.data.frame(mat)
   names(df) <- yrs
 
+  res_vec = as.numeric(res) 
+  res_vec = na.omit(res_vec) 
+  sdnr_est = sd(res_vec)
+
+  if(addCI) {
+    df_n = length(res_vec) - 1 # degrees of freedom
+    lci = sqrt(qchisq(0.025, df_n) / df_n) # lower 95% CI
+    hci = sqrt(qchisq(0.975, df_n) / df_n) # upper 95% CI
+    sdnr_text = sprintf("SDNR = %.2f\n(%.2f - %.2f)", sdnr_est, lci, hci)
+  } else {
+    sdnr_text = sprintf("SDNR = %.2f", sdnr_est)
+  }
+
   dplyr::mutate(df, label = label) %>%
     tidyr::pivot_longer(-label) %>%
     ggplot2::ggplot() +
     ggplot2::stat_qq(ggplot2::aes(sample = value)) +
     ggplot2::geom_abline(slope = 1, intercept = 0) +
-    ggplot2::labs(x = 'Theoretical quantiles', y = 'Sample quantiles')
+    ggplot2::labs(x = 'Theoretical quantiles', y = 'Sample quantiles') +
+    ggplot2::annotate("text", x = -Inf, y = Inf, label = sdnr_text, 
+                      hjust = -0.1, vjust = 1.2, size = 2)
 }
 
 #' aggregate residual plot for RTMB model
