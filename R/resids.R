@@ -44,8 +44,8 @@ osa <- function(obs, pred, iss, yrs, ind, label = 'Age', outlier) {
     geom_point(show.legend=TRUE) +
     ggplot2::scale_size_area(guide="none", max_size = 3) +
     scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
-    afscassess::scale_y_tickr(data = df, var = ind, start=0) +
-    afscassess::scale_x_tickr(data = df, var = year) +
+    tickr::scale_y_tickr(data = df, var = ind, var_min=0) +
+    tickr::scale_x_tickr(data = df, var = year) +
     ggplot2::scale_shape_manual(values = c(19,8), drop = FALSE) +
     ggplot2::ylab(label) +
     ggplot2::xlab('Year') +
@@ -101,8 +101,8 @@ pearson <- function(obs, pred, iss, yrs, ind, outlier, label) {
     ggplot2::geom_point(show.legend=TRUE) +
     ggplot2::scale_size_area(guide="none", max_size = 3) +
     scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
-    afscassess::scale_y_tickr(data = df, var = ind) +
-    afscassess::scale_x_tickr(data = df, var = year) +
+    tickr::scale_y_tickr(data = df, var = ind) +
+    tickr::scale_x_tickr(data = df, var = year) +
     ggplot2::scale_shape_manual(values = c(19,8), drop = FALSE) +
     ggplot2::ylab(label) +
     ggplot2::xlab('Year') +
@@ -147,7 +147,7 @@ qq <- function(obs, pred, iss, yrs, label, addCI=TRUE) {
     df_n = length(res_vec) - 1 # degrees of freedom
     lci = sqrt(qchisq(0.025, df_n) / df_n) # lower 95% CI
     hci = sqrt(qchisq(0.975, df_n) / df_n) # upper 95% CI
-    sdnr_text = sprintf("SDNR = %.2f\n(%.2f - %.2f)", sdnr_est, lci, hci)
+    sdnr_text = sprintf("SDNR = %.2f\nExpected (H0: %.2f - %.2f)", sdnr_est, lci, hci)
   } else {
     sdnr_text = sprintf("SDNR = %.2f", sdnr_est)
   }
@@ -159,7 +159,7 @@ qq <- function(obs, pred, iss, yrs, label, addCI=TRUE) {
     ggplot2::geom_abline(slope = 1, intercept = 0) +
     ggplot2::labs(x = 'Theoretical quantiles', y = 'Sample quantiles') +
     ggplot2::annotate("text", x = -Inf, y = Inf, label = sdnr_text, 
-                      hjust = -0.1, vjust = 1.2, size = 2)
+                      hjust = -0.1, vjust = 1.2, size = 4)
 }
 
 #' aggregate residual plot for RTMB model
@@ -189,7 +189,7 @@ agg <- function(obs, pred, ind, label) {
     ggplot2::geom_bar(ggplot2::aes(y=obs), stat = 'identity', alpha=0.4) +
     ggplot2::geom_point() +
     ggplot2::geom_line() +
-    afscassess::scale_x_tickr(data=df, var=ind, start=0) +
+    tickr::scale_x_tickr(data=df, var=ind, var_min=0) +
     ggplot2::xlab(label) +
     ggplot2::ylab('')
 
@@ -232,7 +232,7 @@ annual <- function(obs, pred, ind, yrs, label) {
     ggplot2::geom_col(alpha = 0.5, ggplot2::aes(fill = factor(ind)), show.legend = FALSE) +
     ggplot2::geom_line(data = filter(df, type=='pred')) +
     ggplot2::facet_wrap(~year, ncol = 2, dir='v') +
-    afscassess::scale_x_tickr(data=df, var=ind, start=0) +
+    tickr::scale_x_tickr(data=df, var=ind, var_min=0) +
     scico::scale_fill_scico_d(palette = 'managua') +
     ggplot2::xlab(label) +
     ggplot2::ylab("") +
@@ -283,7 +283,7 @@ sample_size <- function(obs, pred, iss, yrs){
     ggplot2::scale_color_manual("", breaks = c('effN', 'ISS'), values = c("#7E1700","#5DC0D2",1)) +
     ggplot2::expand_limits(y = 0) +
     ggplot2::theme(legend.position=c(0.1,0.8)) +
-    afscassess::scale_x_tickr(data=df, var=year, to=10, start = 1960) +
+    tickr::scale_x_tickr(data=df, var=year, by=10, var_min = 1960) +
     ggplot2::xlab('Year') +
     ggplot2::ylab('Value')
 }

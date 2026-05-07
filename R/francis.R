@@ -56,7 +56,10 @@ run_model_reweight <- function(output, iters = 10, ...) {
   split_list = split(fit$par, names(fit$par))
   pars = lapply(split_list, unname)
   pars = pars[nms]
-
+  # put any mapped items back into the pars
+  if(!is.null(map)) {
+    p0[[names(map)]] = obj$env$parList()[[names(map)]]
+  }
   # initial weights (start with 1.0 if not specified)
   if(is.null(data$fish_age_wt)) data$fish_age_wt <- 1.0
   if(is.null(data$srv_age_wt)) data$srv_age_wt <- 1.0
