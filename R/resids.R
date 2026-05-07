@@ -117,7 +117,7 @@ pearson <- function(obs, pred, iss, yrs, ind, outlier, label) {
 #' @param iss input sample size
 #' @param yrs comp years
 #' @param label axis label
-#' @param addCI boolean to include 95% confidence intervals on the SDNR label
+#' @param addCI boolean to include 95% confidence intervals on the SDNR label, default:TRUE
 #' 
 #' @export
 #'
@@ -131,7 +131,7 @@ pearson <- function(obs, pred, iss, yrs, ind, outlier, label) {
 #' osa(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
 #'     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
 #' }
-qq <- function(obs, pred, iss, yrs, label) {
+qq <- function(obs, pred, iss, yrs, label, addCI=TRUE) {
   obs = round(iss * obs / colSums(obs))
   pred = pred / colSums(pred)
   res = compResidual::resMulti((obs), (pred))
