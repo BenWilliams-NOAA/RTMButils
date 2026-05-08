@@ -19,6 +19,7 @@ Imports:
     scico,
     stats,
     tibble,
+    tickr,
     tidyr
 Remotes:
     BenWilliams-NOAA/afscassess
