@@ -4,36 +4,25 @@
 \alias{resids}
 \title{get all residual plots for RTMB model}
 \usage{
-resids(obs, pred, iss, outlier = 3, yrs, ind, label = "Age")
+resids(object, var = "fish_age", outlier = 3, label = "Age", addCI = TRUE)
 }
 \arguments{
-\item{obs}{observed comp}
+\item{object}{RTMButils::run_model() output}
 
-\item{pred}{predictedcomp}
-
-\item{iss}{input sample size}
+\item{var}{variable name, default "fish_age"}
 
 \item{outlier}{outlier size, default: 3}
 
-\item{yrs}{comp years}
-
-\item{ind}{vector or ages of lengths}
-
 \item{label}{axis label}
+
+\item{addCI}{add CI to qq plot}
 }
 \description{
 get all residual plots for RTMB model
 }
 \examples{
 \dontrun{
-iss = data$fish_age_iss
-obs = fish_age_obs
-pred = report1$fish_age_pred
-yrs = fish_age_yrs
-label = "Age"
-ind = ages
-fish_age_resids <- resids(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
-                         yrs = fish_age_yrs, ind = ages)
- fish_age_resids$osa + ggtitle('osa fishery age comp residuals')
+fish_age_resids <- resids(output = model_1)
+fish_age_resids$osa + ggtitle('osa fishery age comp residuals')
 }
 }

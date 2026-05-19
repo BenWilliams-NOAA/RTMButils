@@ -7,7 +7,7 @@
 agg(obs, pred, ind, label)
 }
 \arguments{
-\item{obs}{observed comp}
+\item{obs}{observed comp - input sample size and comp weighting adjusted}
 
 \item{pred}{predicted comp}
 

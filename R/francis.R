@@ -50,16 +50,10 @@ run_model_reweight <- function(output, iters = 10, ...) {
   map = output$obj$env$map
   fit = output$fit
   model = output$model
+  pars = output$obj$env$parList()
   lower = fit$lower
   upper = fit$upper
-  nms = unique(names(fit$par))
-  split_list = split(fit$par, names(fit$par))
-  pars = lapply(split_list, unname)
-  pars = pars[nms]
-  # put any mapped items back into the pars
-  if(!is.null(map)) {
-    pars[[names(map)]] = obj$env$parList()[[names(map)]]
-  }
+  
   # initial weights (start with 1.0 if not specified)
   if(is.null(data$fish_age_wt)) data$fish_age_wt <- 1.0
   if(is.null(data$srv_age_wt)) data$srv_age_wt <- 1.0
@@ -108,15 +102,12 @@ run_model_reweight <- function(output, iters = 10, ...) {
     weight_history[i+1, ] = c(i, data$fish_age_wt, data$srv_age_wt, data$fish_size_wt)
 
     # update pars for next iteration
-    split_list = split(new_run$fit$par, names(new_run$fit$par))
-    pars = lapply(split_list, unname)[nms]
-		if(!is.null(map)) {
-      pars[names(map)] <- new_run$obj$env$parList()[names(map)]
-    }
+    pars = output$obj$env$parList()
+    
   }
 
   cat("\n--- Reweighting process finished. ---\n")
   print(weight_history)
 
-  return(new_run)
+  # return(new_run)
 }

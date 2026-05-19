@@ -94,7 +94,7 @@ get_slx <- function(ages, type, pars, adj) {
       sel_double_normal(ages, pars[1], pars[2], pars[3], pars[4], adj)
     },
     "4" = {
-      # double logistic: pars[1] = a50a, pars[2] = a50d, pars[3] = delta, pars[4] = delta2
+      # double logistic: pars[1] = a50a, pars[2] = delta, pars[3] = a50d, pars[4] = delta2
       sel_double_logistic(ages, pars[1], pars[2], pars[3], pars[4], adj)
     }
   )

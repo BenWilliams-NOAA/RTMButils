@@ -82,7 +82,7 @@ run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, uppe
     proj = NULL
   }
   sd = RTMB::sdreport(obj)
-  list(obj=obj, fit=fit, rpt=rpt, proj=proj, sd=sd, dat=data, model=model)
+  list(obj=obj, fit=fit, rpt=rpt, proj=proj, sd=sd, dat=data, model=model, lower=lower, upper = upper)
 }
 
 

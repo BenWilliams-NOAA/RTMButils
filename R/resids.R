@@ -211,12 +211,12 @@ sdnr <- function(obs, pred, iss, wt) {
   n = ncol(obs)
   sdnr = vector(length = n)
   for(i in 1:n) {
-    # expected variance for multinomial: N*p*(1-p)
+    # adjust sample size for weighting
     N = iss[i] * wt
-		expected_val = pred[,i] * N
-    variance = expected_val * (1 - pred[,i])
+    # variance on the proportion scale
+    variance = (pred[,i] * (1 - pred[,i])) / N
     # standardized residual
-    std_res = (obs[,i] - expected_val) / sqrt(variance)
+    std_res = (obs[,i] - pred[,i]) / sqrt(variance)
     sdnr[i] = sd(std_res, na.rm = TRUE)
   }
   sdnr
@@ -273,7 +273,7 @@ sample_size <- function(obs, pred, iss, yrs, wt){
 resids <- function(object, var = "fish_age", outlier = 3, label = 'Age', addCI = TRUE) {
   rpt = object$rpt
 	data = object$dat
-	id = if(grepl("age", var)) "ages" else "size"
+	id = if(grepl("age", var)) "ages" else "length_bins"
 	ind = data[[id]]
 	iss = data[[paste0(var,"_iss")]]
 	wt = data[[paste0(var,"_wt")]]
@@ -293,7 +293,7 @@ resids <- function(object, var = "fish_age", outlier = 3, label = 'Age', addCI =
        qq = osa_obj$qq,
        pearson = pearson(obs_prop, pred_prop, iss=iss, wt = wt, yrs=yrs, ind=ind, outlier=outlier, label = label),
        agg = agg(obs_prop, pred_prop, ind, label=label),
-       annual = annual(obs, pred_prop, ind, yrs, label=label),
+       annual = annual(obs_prop, pred_prop, ind, yrs, label=label),
        ss = sample_size(obs_prop, pred_prop, iss, yrs, wt) )
 }
 

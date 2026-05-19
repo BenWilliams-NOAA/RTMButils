@@ -4,14 +4,12 @@
 \alias{osa}
 \title{one-step ahead residuals for RTMB model}
 \usage{
-osa(obs, pred, iss, yrs, ind, label = "Age", outlier)
+osa(obs, pred, yrs, ind, label = "Age", outlier = 3, addCI = TRUE)
 }
 \arguments{
-\item{obs}{observed comp}
+\item{obs}{observed comp - input sample size and comp weighting adjusted}
 
-\item{pred}{predictedcomp}
-
-\item{iss}{input sample size}
+\item{pred}{predicted comp}
 
 \item{yrs}{comp years}
 
@@ -20,13 +18,14 @@ osa(obs, pred, iss, yrs, ind, label = "Age", outlier)
 \item{label}{axis label}
 
 \item{outlier}{mark point as outlier if greater than. default: 3}
+
+\item{addCI}{boolean to include 95% confidence intervals on the SDNR label, default:TRUE}
 }
 \description{
 one-step ahead residuals for RTMB model
 }
 \examples{
 \dontrun{
-iss = data$fish_age_iss
 obs = fish_age_obs
 pred = report1$fish_age_pred
 yrs = fish_age_yrs

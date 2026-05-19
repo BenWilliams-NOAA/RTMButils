@@ -4,16 +4,18 @@
 \alias{sample_size}
 \title{Composition sample size}
 \usage{
-sample_size(obs, pred, iss, yrs)
+sample_size(obs, pred, iss, yrs, wt)
 }
 \arguments{
-\item{obs}{observed comp data}
+\item{obs}{observed comp data- input sample size and comp weighting adjusted}
 
 \item{pred}{predicted comp data}
 
 \item{iss}{input sample size}
 
 \item{yrs}{years}
+
+\item{wt}{comp weighting}
 }
 \description{
 Composition sample size

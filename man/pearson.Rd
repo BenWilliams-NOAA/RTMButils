@@ -4,16 +4,18 @@
 \alias{pearson}
 \title{pearson residuals for RTMB model}
 \usage{
-pearson(obs, pred, iss, yrs, ind, outlier, label)
+pearson(obs, pred, iss, yrs, wt, ind, outlier, label)
 }
 \arguments{
-\item{obs}{observed comp}
+\item{obs}{observed comp - input sample size and comp weighting adjusted}
 
 \item{pred}{predictedcomp}
 
 \item{iss}{input sample size}
 
 \item{yrs}{comp years}
+
+\item{wt}{comp data weighting}
 
 \item{ind}{vector or ages of lengths}
 
@@ -26,13 +28,7 @@ pearson residuals for RTMB model
 }
 \examples{
 \dontrun{
-iss = data$fish_age_iss
-obs = fish_age_obs
-pred = report1$fish_age_pred
-yrs = fish_age_yrs
-label = "Age"
-ind = ages
-pearson(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
+pearson(obs = fish_age_obs * iss * wt, pred = report1$fish_age_pred, iss = data$fish_age_iss,
     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
 }
 }
