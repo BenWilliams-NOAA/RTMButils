@@ -4,7 +4,7 @@
 \alias{pearson}
 \title{pearson residuals for RTMB model}
 \usage{
-pearson(obs, pred, iss, yrs, wt, ind, outlier, label)
+pearson(obs, pred, iss, yrs, wt, ind, outlier, label, theta = NULL)
 }
 \arguments{
 \item{obs}{observed comp - input sample size and comp weighting adjusted}
@@ -19,9 +19,9 @@ pearson(obs, pred, iss, yrs, wt, ind, outlier, label)
 
 \item{ind}{vector or ages of lengths}
 
-\item{outlier}{mark point as outlier if greater than}
-
 \item{label}{axis label}
+
+\item{theta}{optional scalar for Dirichlet-multinomial}
 }
 \description{
 pearson residuals for RTMB model

@@ -4,7 +4,27 @@
 \alias{osa}
 \title{one-step ahead residuals for RTMB model}
 \usage{
-osa(obs, pred, yrs, ind, label = "Age", outlier = 3, addCI = TRUE)
+osa(
+  obs,
+  pred,
+  yrs,
+  ind,
+  label = "Age",
+  addCI = TRUE,
+  theta = NULL,
+  seed = 99801
+)
+
+osa(
+  obs,
+  pred,
+  yrs,
+  ind,
+  label = "Age",
+  addCI = TRUE,
+  theta = NULL,
+  seed = 99801
+)
 }
 \arguments{
 \item{obs}{observed comp - input sample size and comp weighting adjusted}
@@ -17,14 +37,29 @@ osa(obs, pred, yrs, ind, label = "Age", outlier = 3, addCI = TRUE)
 
 \item{label}{axis label}
 
-\item{outlier}{mark point as outlier if greater than. default: 3}
-
 \item{addCI}{boolean to include 95% confidence intervals on the SDNR label, default:TRUE}
+
+\item{theta}{optional scalar for Dirichlet-multinomial}
+
+\item{seed}{random seed for reproducibility}
+
+\item{outlier}{mark point as outlier if greater than. default: 3}
 }
 \description{
 one-step ahead residuals for RTMB model
+
+one-step ahead residuals for RTMB model & and Dirichlet
 }
 \examples{
+\dontrun{
+obs = fish_age_obs
+pred = report1$fish_age_pred
+yrs = fish_age_yrs
+label = "Age"
+ind = ages
+osa(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
+    yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
+}
 \dontrun{
 obs = fish_age_obs
 pred = report1$fish_age_pred

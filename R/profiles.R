@@ -7,70 +7,72 @@
 #'
 #' @return A data frame with parameter value, log-likelihood, and derived values
 #' @export
-profiles <- function(output, par_name = "log_M", par_values = log(seq(0.03, 0.1, 0.005)),
-                     derived = c("like_fish_age", "like_srv_age", "like_srv", "like_fish_size")) {
-
-  dat = output$dat
-  obj = output$obj
-  map = obj$env$map
-  fit = output$fit
-  f = output$model
-
-  results <- data.frame(value = par_values,
-                        log_like = NA_real_,
-                        matrix(NA_real_, nrow = length(par_values), ncol = length(derived)))
-  colnames(results)[3:ncol(results)] <- derived
-
-  nms = unique(names(fit$par))
-  split_list <- split(fit$par, names(fit$par))
-  pars = lapply(split_list, unname)
-  pars = pars[nms]
-
-  # put any mapped items back into the pars
-  if(!is.null(map)) {
-    pars[[names(map)]] = obj$report()[[names(map)]]
-  } else {
-    # create map if none provided
-    if(is.null(map)) {
-      map = list()
+#' 
+profiles <- function (output, par_name = "log_M", par_values = log(seq(0.03, 
+    0.1, 0.005)), derived = c("like_fish_age", "like_srv_age", 
+    "like_srv", "like_fish_size")) 
+{
+    f = output$model
+    dat = output$dat
+    obj = output$obj
+    map = obj$env$map
+    fit = output$fit
+    ll = output$lower
+	  ul = output$upper
+    
+    results <- data.frame(value = par_values, log_like = NA_real_, 
+        matrix(NA_real_, nrow = length(par_values), ncol = length(derived)))
+    colnames(results)[3:ncol(results)] <- derived
+    
+    # --- Use RTMB's internal parList 
+    # This grabs ALL parameters (both estimated and mapped)
+    pars <- obj$env$parList(fit$par)
+    
+    if (is.null(map)) {
+        map = list()
     }
-  }
-  map[[par_name]] = factor(NA)
-
-  for (i in seq_along(par_values)) {
-    cat("Profiling", par_name, "at", par_values[i], "\n")
-
-    # copy parameter list
-    pars_i <- pars
-    pars_i[[par_name]] <- par_values[i]
-
-    # rebuild obj with fixed parameter
-    obj_i  = RTMB::MakeADFun(cmb(f, dat),,
-                             parameters = pars_i,
-                             map = map)
-
-    # optimize
-    if (i == 1) start_vals = obj_i$par else start_vals = fit_i$par
-    fit_i <- nlminb(start = start_vals,
-                    objective = obj_i$fn,
-                    gradient = obj_i$gr,
-                    control = list(iter.max = 100000, eval.max = 20000))
-
-    results$log_like[i] <- fit_i$objective
-
-    # store raw derived values
-    rep <- obj_i$report(fit_i$par)
-    for (j in seq_along(derived)) {
-      key <- derived[j]
-      val <- rep[[key]]
-      results[i, key] <- if (is.atomic(val) && length(val) > 1) tail(val, 1) else val
+    
+    # Add the profiling parameter to the map so it stays fixed during the loop
+    map[[par_name]] = factor(NA)
+    
+    for (i in seq_along(par_values)) {
+        cat("Profiling", par_name, "at", par_values[i], "\n")
+        pars_i <- pars
+        pars_i[[par_name]] <- par_values[i]
+        
+        # Build the objective function with the updated parameter
+        obj_i = RTMB::MakeADFun(cmb(f, dat), parameters = pars_i, map = map)
+        
+        if (i == 1) {
+            start_vals = obj_i$par
+        } else {
+            start_vals = fit_i$par
+        }
+        
+        # Run the optimizer
+        fit_i <- nlminb(start = start_vals, 
+          							objective = obj_i$fn, 
+                        gradient = obj_i$gr, 
+                        control = list(iter.max = 1e+05, eval.max = 20000),
+                      	lower = ll,
+                    		upper = ul)
+            
+        results$log_like[i] <- fit_i$objective
+        rep <- obj_i$report(fit_i$par)
+        
+        # Extract derived values
+        for (j in seq_along(derived)) {
+            key <- derived[j]
+            val <- rep[[key]]
+            results[i, key] <- if (is.atomic(val) && length(val) > 1) {
+                tail(val, 1)
+            } else {
+                val
+            }
+        }
     }
-  }
-
-  results
-
+    return(results)
 }
-
 
 
 #' plot parameter profile

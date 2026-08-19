@@ -21,7 +21,7 @@
 #'     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
 #' }
 osa <- function(obs, pred, yrs, ind, label = 'Age', outlier=3, addCI = TRUE) {
-
+  
   res = compResidual::resMulti(obs, pred)
   mat = matrix(res, nrow=nrow(res), ncol=ncol(res))
   df = as.data.frame(mat)
@@ -74,6 +74,90 @@ osa <- function(obs, pred, yrs, ind, label = 'Age', outlier=3, addCI = TRUE) {
 
 }
 
+#' one-step ahead residuals for RTMB model & and Dirichlet
+#'
+#' @param obs observed comp - input sample size and comp weighting adjusted
+#' @param pred predicted comp
+#' @param yrs comp years
+#' @param ind vector or ages of lengths
+#' @param label axis label
+#' @param addCI boolean to include 95% confidence intervals on the SDNR label, default:TRUE
+#' @param theta optional scalar for Dirichlet-multinomial
+#' @param seed random seed for reproducibility
+#' 
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' obs = fish_age_obs
+#' pred = report1$fish_age_pred
+#' yrs = fish_age_yrs
+#' label = "Age"
+#' ind = ages
+#' osa(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
+#'     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
+#' }
+osa <- function(obs, pred, yrs, ind, label = 'Age', addCI = TRUE, theta = NULL, seed = 99801) {
+ 	set.seed(seed)
+  if (is.null(theta)) {
+    res = compResidual::resMulti(obs, pred)
+  } else {
+    # calculate N per year (column sums of the count matrix)
+    N = colSums(obs)
+    # alpha = expected probabilities * total counts * theta
+    alpha = sweep(pred, 2, N * theta, "*")
+    res = compResidual::resDirM(obs, alpha)
+  }
+
+  mat = matrix(res, nrow=nrow(res), ncol=ncol(res))
+  df = as.data.frame(mat)
+  names(df) <- yrs
+
+  df %>%
+    dplyr::mutate(ind = head(ind, -1)) %>%
+    tidyr::pivot_longer( -ind, names_to = 'year') %>%
+    dplyr::mutate(year = as.numeric(year),
+           Year = factor(year),
+           id = ifelse(value<0 , 'a', 'b')) -> df
+
+  df %>%
+    ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = value) ) +
+    geom_point(show.legend=TRUE) +
+    ggplot2::scale_size_area(guide="none", max_size = 3) +
+    scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
+    tickr::scale_y_tickr(data = df, var = ind, var_min=0) +
+    tickr::scale_x_tickr(data = df, var = year) +
+    ggplot2::ylab(label) +
+    ggplot2::xlab('Year') +
+    ggplot2::ggtitle('OSA') -> osa
+
+  res_vec = as.numeric(res) 
+  res_vec = na.omit(res_vec) 
+  sdnr_est = sd(res_vec)
+
+  if(addCI) {
+    df_n = length(res_vec) - 1 # degrees of freedom
+    lci = sqrt(qchisq(0.025, df_n) / df_n) # lower 95% CI
+    hci = sqrt(qchisq(0.975, df_n) / df_n) # upper 95% CI
+    sdnr_text = sprintf("SDNR = %.2f\nExpected (H0: %.2f - %.2f)", sdnr_est, lci, hci)
+  } else {
+    sdnr_text = sprintf("SDNR = %.2f", sdnr_est)
+  }
+
+  df %>% 
+  # dplyr::mutate(label = label) %>%
+    # tidyr::pivot_longer(-label) %>%
+    ggplot2::ggplot() +
+    ggplot2::stat_qq(ggplot2::aes(sample = value)) +
+    ggplot2::geom_abline(slope = 1, intercept = 0) +
+    ggplot2::labs(x = 'Theoretical quantiles', y = 'Sample quantiles') +
+    ggplot2::annotate("text", x = -Inf, y = Inf, label = sdnr_text, 
+                      hjust = -0.1, vjust = 1.2, size = 4) -> qq
+  list(osa=osa, qq=qq)
+
+}
+
+
 #' pearson residuals for RTMB model
 #'
 #' @param obs observed comp - input sample size and comp weighting adjusted
@@ -82,8 +166,8 @@ osa <- function(obs, pred, yrs, ind, label = 'Age', outlier=3, addCI = TRUE) {
 #' @param yrs comp years
 #' @param wt comp data weighting
 #' @param ind vector or ages of lengths
-#' @param outlier mark point as outlier if greater than
 #' @param label axis label
+#' @param theta optional scalar for Dirichlet-multinomial 
 #'
 #' @export
 #'
@@ -92,10 +176,16 @@ osa <- function(obs, pred, yrs, ind, label = 'Age', outlier=3, addCI = TRUE) {
 #' pearson(obs = fish_age_obs * iss * wt, pred = report1$fish_age_pred, iss = data$fish_age_iss,
 #'     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
 #' }
-pearson <- function(obs, pred, iss, yrs, wt, ind, outlier, label) {
+pearson <- function(obs, pred, iss, yrs, wt, ind, outlier, label, theta = NULL) {
 
   N = iss * wt
-  se = sqrt(sweep(pred * (1 - pred), 2, N, "/"))
+  if (!is.null(theta)) {
+    # Scale N to the Dirichlet-Multinomial Effective Sample Size
+    N_eff = (1 + theta * N) / (1 + theta)
+  } else {
+    N_eff = N
+  }
+  se = sqrt(sweep(pred * (1 - pred), 2, N_eff, "/"))
   resids = (obs - pred) / se
 
   df = as.data.frame(resids)
@@ -106,17 +196,15 @@ pearson <- function(obs, pred, iss, yrs, wt, ind, outlier, label) {
     tidyr::pivot_longer( -ind, names_to = 'year') %>%
     dplyr::mutate(year = as.numeric(year),
            Year = factor(year),
-           id = ifelse(value<0 , 'a', 'b'),
-           Outlier = factor(ifelse(abs(value) >= outlier, "Yes", "No"))) -> df
+           id = ifelse(value<0 , 'a', 'b')) -> df
 
   df %>%
-    ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = abs(value), shape = Outlier) ) +
+    ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = abs(value)) ) +
     ggplot2::geom_point(show.legend=TRUE) +
     ggplot2::scale_size_area(guide="none", max_size = 3) +
     scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
     tickr::scale_y_tickr(data = df, var = ind) +
     tickr::scale_x_tickr(data = df, var = year) +
-    ggplot2::scale_shape_manual(values = c(19,8), drop = FALSE) +
     ggplot2::ylab(label) +
     ggplot2::xlab('Year') +
     ggplot2::ggtitle('Pearson')
@@ -207,14 +295,19 @@ effn <- function(obs, pred, iss, wt) {
   colSums((1 - pred) * pred) / colSums((obs - pred)^2)
 }
 
-sdnr <- function(obs, pred, iss, wt) {
+sdnr <- function(obs, pred, iss, wt, theta = NULL) {
   n = ncol(obs)
   sdnr = vector(length = n)
   for(i in 1:n) {
-    # adjust sample size for weighting
     N = iss[i] * wt
+    if (!is.null(theta)) {
+      N_eff = (1 + theta * N) / (1 + theta)
+    } else {
+      N_eff = N
+    }
+    
     # variance on the proportion scale
-    variance = (pred[,i] * (1 - pred[,i])) / N
+    variance = (pred[,i] * (1 - pred[,i])) / N_eff
     # standardized residual
     std_res = (obs[,i] - pred[,i]) / sqrt(variance)
     sdnr[i] = sd(std_res, na.rm = TRUE)
@@ -229,26 +322,36 @@ sdnr <- function(obs, pred, iss, wt) {
 #' @param iss input sample size
 #' @param yrs years
 #' @param wt comp weighting
+#' @param theta optional scalar for Dirichlet-multinomial 
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' sample_size(obs, pred, iss, yrs)}
-sample_size <- function(obs, pred, iss, yrs, wt){
+sample_size <- function(obs, pred, iss, yrs, wt, theta = NULL){
   obs_p = sweep(obs, 2, colSums(obs), "/")
   data.frame(year = yrs,
              ISS = iss * wt,
              effN = effn(obs_p, pred, iss, wt),
-             sdnr = sdnr(obs_p, pred, iss, wt)) %>%
+             sdnr = sdnr(obs_p, pred, iss, wt, theta)) -> df
+
+  # if theta is provided, append Dirichlet-Multinomial effective sample size
+  if (!is.null(theta)) {
+    df$dm_ESS = (1 + theta * df$ISS) / (1 + theta)
+  }
+
+  df %>%
     tidyr::pivot_longer(-year) %>%
     dplyr::mutate(grp = ifelse(name=='sdnr', 'SDNR', 'Sample size')) -> df
+
+  color_map <- c("effN" = "#7E1700", "ISS" = "#5DC0D2", "DM_ESS" = "#00A08A", "sdnr" = "black")
 
   df %>%
     ggplot2::ggplot(ggplot2::aes(year, value, color = name)) +
     ggplot2::geom_point() +
     ggplot2::facet_wrap(~grp, scales = 'free_y', dir = 'h') +
-    ggplot2::scale_color_manual("", breaks = c('effN', 'ISS'), values = c("#7E1700","#5DC0D2",1)) +
+    ggplot2::scale_color_manual("", values = color_map) +
     ggplot2::expand_limits(y = 0) +
     ggplot2::theme(legend.position=c(0.1,0.1)) +
     tickr::scale_x_tickr(data=df, var=year, by=10, var_min = 1960) +
@@ -260,7 +363,6 @@ sample_size <- function(obs, pred, iss, yrs, wt){
 #'
 #' @param object RTMButils::run_model() output
 #' @param var variable name, default "fish_age"
-#' @param outlier outlier size, default: 3
 #' @param label axis label
 #' @param addCI add CI to qq plot
 #' @export
@@ -270,7 +372,7 @@ sample_size <- function(obs, pred, iss, yrs, wt){
 #' fish_age_resids <- resids(output = model_1)
 #' fish_age_resids$osa + ggtitle('osa fishery age comp residuals')
 #' }
-resids <- function(object, var = "fish_age", outlier = 3, label = 'Age', addCI = TRUE) {
+resids <- function(object, var = "fish_age", label = 'Age', addCI = TRUE, seed = 99801) {
   rpt = object$rpt
 	data = object$dat
 	id = if(grepl("age", var)) "ages" else "length_bins"
@@ -279,16 +381,26 @@ resids <- function(object, var = "fish_age", outlier = 3, label = 'Age', addCI =
 	wt = data[[paste0(var,"_wt")]]
 	yrs = data[[paste0(var, "_yrs")]]
 
+  if(var == "fish_age") {
+    theta = rpt$log_theta_fac
+  }
+  if(var == "srv_age") {
+    theta = rpt$log_theta_sac
+  }
+    if(var == "fish_size") {
+    theta = rpt$log_theta_fsc
+  }
+
   # observed as 'effective counts' (needed for osaand pearson)
-  obs_counts = round(iss * data[[paste0(var,"_obs")]] * wt)
+  obs_counts = round(sweep(data[[paste0(var,"_obs")]], 2, iss * wt, "*"))
   # predicted as proportions (standard for most functions)
   pred_prop = rpt[[paste0(var, "_pred")]] 
   # ensure pred_prop sums to 1 across bins for each year
   pred_prop = sweep(pred_prop, 2, colSums(pred_prop), "/")
   # observed as proportions (annual/aggregate plots)
-  obs_prop = sweep(iss * data[[paste0(var,"_obs")]] * wt, 2, colSums(iss * data[[paste0(var,"_obs")]] * wt), "/")
-  
-  osa_obj = osa(obs_counts, pred_prop, yrs, ind, label, outlier, addCI)
+  obs_prop = sweep(obs_counts, 2, colSums(obs_counts), "/")
+
+  osa_obj = osa(obs_counts, pred_prop, yrs, ind, label, addCI=addCI, theta=theta, seed=seed)
   list(osa = osa_obj$osa,
        qq = osa_obj$qq,
        pearson = pearson(obs_prop, pred_prop, iss=iss, wt = wt, yrs=yrs, ind=ind, outlier=outlier, label = label),

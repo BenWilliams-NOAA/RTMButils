@@ -4,7 +4,7 @@
 \alias{sample_size}
 \title{Composition sample size}
 \usage{
-sample_size(obs, pred, iss, yrs, wt)
+sample_size(obs, pred, iss, yrs, wt, theta = NULL)
 }
 \arguments{
 \item{obs}{observed comp data- input sample size and comp weighting adjusted}
@@ -16,6 +16,8 @@ sample_size(obs, pred, iss, yrs, wt)
 \item{yrs}{years}
 
 \item{wt}{comp weighting}
+
+\item{theta}{optional scalar for Dirichlet-multinomial}
 }
 \description{
 Composition sample size

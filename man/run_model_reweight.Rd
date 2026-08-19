@@ -4,12 +4,14 @@
 \alias{run_model_reweight}
 \title{Run model with iterative Francis reweighting for composition data}
 \usage{
-run_model_reweight(output, iters = 10, ...)
+run_model_reweight(output, iters = 10, max_one = TRUE)
 }
 \arguments{
 \item{output}{The output from RTMButils::run_model() that contains the model, named data list, and named parameter list.}
 
 \item{iters}{number of reweighting iterations.}
+
+\item{max_one}{cap the weight at 1, default: TRUE}
 }
 \description{
 Run model with iterative Francis reweighting for composition data

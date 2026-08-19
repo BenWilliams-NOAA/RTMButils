@@ -11,6 +11,7 @@ run_retro(
   folder,
   subfolder = NULL,
   quantities = c("spawn_bio", "tot_bio", "recruits"),
+  peel_pars = c("log_Ft", "log_Rt"),
   save_outputs = TRUE
 )
 }
@@ -27,6 +28,8 @@ run_retro(
 
 \item{quantities}{A character vector of variable names from the model report
 to analyze (e.g., c("spawn_bio", "tot_bio", "recruits"))}
+
+\item{peel_pars}{names of parameters with annual index}
 
 \item{save_outputs}{A logical flag. If TRUE, saves the retrospective results
 (.RDS) and plots (.png) to a 'retro' subfolder}

@@ -4,7 +4,7 @@
 \alias{fit_check}
 \title{check Hessian is positive definite}
 \usage{
-fit_check(fit)
+fit_check(fit, tol = 1e-04, gr_tol = 1e-04)
 }
 \description{
 check Hessian is positive definite

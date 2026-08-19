@@ -11,6 +11,7 @@
 #' @param subfolder used for file paths (e.g., "m24"), default: NULL
 #' @param quantities A character vector of variable names from the model report
 #'   to analyze (e.g., c("spawn_bio", "tot_bio", "recruits"))
+#' @param peel_pars names of parameters with annual index
 #' @param save_outputs A logical flag. If TRUE, saves the retrospective results
 #'   (.RDS) and plots (.png) to a 'retro' subfolder
 #'
@@ -27,6 +28,7 @@
 #' @export
 run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
                       quantities = c("spawn_bio", "tot_bio", "recruits"),
+                      peel_pars = c("log_Ft", "log_Rt"),
                       save_outputs = TRUE) {
 
   # setup and load base model components
@@ -42,8 +44,8 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
   obj = output$obj
   map = obj$env$map
   fit = output$fit
-  lower = fit$lower
-  upper = fit$upper
+  ll = output$lower
+	ul = output$upper
   nms = unique(names(fit$par))
   split_list = split(fit$par, names(fit$par))
   pars = lapply(split_list, unname)
@@ -250,11 +252,13 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
 #' @param folder The folder name (for file paths).
 #' @param subfolder Optional subfolder (for file paths).
 #' @param quantities Variable names to analyze (e.g., c("spawn_bio", "recruits")).
+#' @param peel_pars names of parameters with annual index
 #' @param save_outputs Logical. If TRUE, saves results and plots.
 #'
 #' @export
 run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
                             quantities = c("spawn_bio", "tot_bio", "recruits"),
+                            peel_pars = c("log_Ft", "log_Rt"),
                             save_outputs = TRUE) {
 
   # setup
@@ -270,6 +274,8 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
   obj = output$obj
   map = obj$env$map
   fit = output$fit
+  ll = output$lower
+	ul = output$upper
 
   # parameter list
   nms = unique(names(fit$par))
@@ -298,6 +304,9 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     data_i = d0
     pars_i = p0
     map_i  = map
+    lower_i = ll
+    upper_i = ul
+
     # peel data from the START (tail -i)
     # removes the first 'i' years
     data_i$years = tail(d0$years, -i)
@@ -337,17 +346,33 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     }
 
     # parameters from the START
-    pars_i$log_Ft = tail(p0$log_Ft, -i)
-    pars_i$log_Rt = tail(p0$log_Rt, -i)
-
-    # peel map from the START
-    if ("log_Ft" %in% names(map_i)) map_i$log_Ft = tail(map_i$log_Ft, -i)
-    if ("log_Rt" %in% names(map_i)) map_i$log_Rt = tail(map_i$log_Rt, -i)
-
+    # Dynamically peel parameters, maps, and bounds based on the peel_pars argument
+    for (p_name in peel_pars) {
+      
+      # 1. Peel the parameter list
+      if (p_name %in% names(pars_i)) {
+        pars_i[[p_name]] <- tail(p0[[p_name]], -i)
+      }
+      
+      # 2. Peel the map list (if this parameter is mapped)
+      if (p_name %in% names(map_i)) {
+        map_i[[p_name]] <- tail(map_i[[p_name]], -i)
+      }
+      
+      # 3. Peel the bounds vectors
+      if (!is.null(lower_i) && !is.null(upper_i)) {
+        idx_lower <- which(names(lower_i) == p_name)
+        idx_upper <- which(names(upper_i) == p_name)
+        
+        # Remove the first 'i' elements
+        if (length(idx_lower) >= i) lower_i <- lower_i[-idx_lower[1:i]]
+        if (length(idx_upper) >= i) upper_i <- upper_i[-idx_upper[1:i]]
+      }
+    }
     # Refit model
     # Note: bounds (lower/upper) might need slicing if they are vectors!
     new_run <- run_model(model = model, data = data_i, pars = pars_i,
-                         map = map_i, lower = fit$lower, upper = fit$upper)
+                         map = map_i, lower = lower_i, upper = upper_i)
 
     reps[[paste0('sd', i)]] = new_run$sd
   }

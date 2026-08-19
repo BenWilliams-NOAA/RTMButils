@@ -11,6 +11,7 @@ run_prospective(
   folder,
   subfolder = NULL,
   quantities = c("spawn_bio", "tot_bio", "recruits"),
+  peel_pars = c("log_Ft", "log_Rt"),
   save_outputs = TRUE
 )
 }
@@ -26,6 +27,8 @@ run_prospective(
 \item{subfolder}{Optional subfolder (for file paths).}
 
 \item{quantities}{Variable names to analyze (e.g., c("spawn_bio", "recruits")).}
+
+\item{peel_pars}{names of parameters with annual index}
 
 \item{save_outputs}{Logical. If TRUE, saves results and plots.}
 }

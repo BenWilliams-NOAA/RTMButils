@@ -38,52 +38,100 @@ solve_Fx <- function(target, M, slx, wt_mat, sp_fract, A, SB0_val) {
 #' @param upper unnamed vector of upper parameter limits, default: NULL
 #' @param random vector of parameter(s) to be random effects, default: NULL
 #' @param newton_loops number of newton loops to run to reduce gradient: 3 - note only works for unconstrained models
+#' @param control optimization settings list(iter.max = 1e5, eval.max = 2e4, rel.tol = 1e-12)
 #'
 #' @export
-run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, upper=NULL, random = NULL, newton_loops = 3) {
-  obj =  RTMB::MakeADFun(cmb(model, data),
-                         pars,
-                         map = map,
-                         random = random)
+run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, upper=NULL, random = NULL, newton_loops = 3, control = list(iter.max = 1e5, eval.max = 2e4, rel.tol = 1e-12)) {
 
-  if(!is.null(lower) & !is.null(upper)) {
-    fit = nlminb(start = obj$par,
-                 objective = obj$fn,
-                 gradient = obj$gr,
-                 control = list(iter.max=100000,
-                                eval.max=20000),
-                 lower = lower,
-                 upper=upper)
-
-      try_improve <- tryCatch({
-        for (i in 1:newton_loops) {
-          g <- as.numeric(obj$gr(fit$par))
-          h <- optimHess(fit$par, fn = obj$fn, gr = obj$gr)
-          fit$par <- fit$par - solve(h, g)
-          fit$objective <- obj$fn(fit$par)
+  # build AD function
+  obj <- RTMB::MakeADFun(cmb(model, data), pars, map = map, random = random)
+  
+  # default bounds if not supplied
+  if (is.null(lower)) lower <- rep(-Inf, length(obj$par))
+  if (is.null(upper)) upper <- rep(Inf, length(obj$par))
+  
+  # optimization 
+  fit <- nlminb(
+    start = obj$par, 
+    objective = obj$fn, 
+    gradient = obj$gr, 
+    control = control, 
+    lower = lower, 
+    upper = upper
+  )
+  
+  #  bounded Newton-Raphson improvement Loops
+  if (newton_loops > 0) {
+    for (i in seq_len(newton_loops)) {
+      g = as.numeric(obj$gr(fit$par))
+      
+      # AD Hessian from RTMB 
+      h = tryCatch(obj$he(fit$par), error = function(e) NULL)
+      if (is.null(h)) break
+      
+      # solve for newton step 
+      delta = tryCatch(solve(h, g), error = function(e) NULL)
+      if (is.null(delta)) break
+      
+      # new parameter vector & bounds
+      prop_par = fit$par - delta
+      prop_par = pmax(pmin(prop_par, upper), lower)
+      
+      # only accept step if NLL improves
+      step_size = 1.0
+      curr_obj = obj$fn(fit$par)
+      improved = FALSE
+      
+      for (step_iter in 1:5) {
+        test_par = fit$par - step_size * delta
+        test_par = pmax(pmin(test_par, upper), lower) # bound enforcement
+        test_obj = obj$fn(test_par)
+        
+        if (!is.na(test_obj) && test_obj < curr_obj) {
+          fit$par = test_par
+          fit$objective = test_obj
+          improved= TRUE
+          break
         }
-      }, error = function(e) {
-        # If it fails, print a warning and continue with the original fit
-        warning("Newton improvement step failed: ", e$message)
-      })
-
-  } else {
-  fit = nlminb(start = obj$par,
-               objective = obj$fn,
-               gradient = obj$gr,
-               control = list(iter.max=100000,
-                              eval.max=20000))
+        step_size = step_size * 0.5 # halve step size if NLL didn't improve
+      }
+      
+      if (!improved) break # stop newton loops if no further improvement
+    }
   }
 
-  rpt = obj$report(obj$env$last.par.best)
-  if(isTRUE(proj)) {
-    proj = proj_bio(rpt) # function to project the next 2 years
+  # evaluate obj$fn on final par to update obj$env internal state
+  final_nll = obj$fn(fit$par)
+  
+  # reports and standard errors
+  rpt = obj$report(fit$par)
+  
+  if (isTRUE(proj)) {
+    proj_out = proj_bio(rpt)
   } else {
-    proj = NULL
+    proj_out = NULL
   }
-  sd = RTMB::sdreport(obj)
-  list(obj=obj, fit=fit, rpt=rpt, proj=proj, sd=sd, dat=data, model=model, lower=lower, upper = upper)
+  
+  sd <- tryCatch(RTMB::sdreport(obj), error = function(e) {
+    warning("sdreport failed: ", e$message)
+    return(NULL)
+  })
+  
+  return(list(
+    obj   = obj, 
+    fit   = fit, 
+    rpt   = rpt, 
+    proj  = proj_out, 
+    sd    = sd, 
+    dat   = data, 
+    model = model, 
+    lower = lower, 
+    upper = upper
+  ))
 }
+
+
+  
 
 
 # use Grant's test for model letter or number
@@ -98,9 +146,57 @@ model_test <- function(m1, m2) {
 
 #' check Hessian is positive definite
 #' @export
-fit_check <- function(fit) {
+fit_check <- function(fit, tol = 1e-4, gr_tol = 1e-4) {
+  # components
   sd_fit = fit$sd
-  cat("Is the Hessian positive definite:", sd_fit$pdHess,
-      "\nThe maximum gradiant is:", max(abs(fit$obj$gr(fit$fit$par))),
-      "\nThe gradiant is < 1e-5:", max(abs(fit$obj$gr(fit$fit$par))) < 1e-5)
+  par = fit$fit$par
+  lower = fit$lower
+  upper = fit$upper
+  
+  # parameter names (handles single or vector parameters)
+  par_names = names(par)
+  if (is.null(par_names)) par_names = names(fit$obj$par)
+  if (!is.null(par_names)) par_names = make.unique(par_names)
+  
+  # evaluate gradients
+  gr = fit$obj$gr(par)
+  max_gr = max(abs(gr), na.rm = TRUE)
+  max_gr_param = par_names[which.max(abs(gr))]
+  
+  cat("----------------------------------------------------\n")
+  cat("                  MODEL DIAGNOSTICS                 \n")
+  cat("----------------------------------------------------\n")
+  cat("Hessian Positive Definite :", ifelse(isTRUE(sd_fit$pdHess), "TRUE (Pass)", "FALSE (FAIL)"), "\n")
+  cat("Maximum Gradient Value    :", sprintf("%.2e", max_gr), "\n")
+  cat("Gradient <", sprintf("%.1e", gr_tol), "          :", ifelse(max_gr < gr_tol, "TRUE (Pass)", "FALSE (WARNING)"), "\n")
+  cat("Highest Gradient Parameter:", max_gr_param, "\n")
+  cat("----------------------------------------------------\n")
+  
+  cat("                  BOUNDS CHECK                      \n")
+  cat("----------------------------------------------------\n")
+  
+  if (!is.null(lower) && !is.null(upper)) {
+    # identify parameters close to lower or upper limits
+    at_lower <- (par - lower) <= tol & !is.infinite(lower)
+    at_upper <- (upper - par) <= tol & !is.infinite(upper)
+    at_bound <- at_lower | at_upper
+    
+    if (any(at_bound, na.rm = TRUE)) {
+      bound_df <- data.frame(
+        Parameter = par_names[at_bound],
+        Estimate  = round(par[at_bound], 5),
+        Lower     = lower[at_bound],
+        Upper     = upper[at_bound],
+        Status    = ifelse(at_lower[at_bound], "at lower bound", "at upper bound")
+      )
+      cat("WARNING: The following parameter(s) are at/near bounds (tol =", tol, "):\n\n")
+      print(bound_df, row.names = FALSE)
+    } else {
+      cat("Pass: All parameters are safely within their upper/lower bounds.\n")
+    }
+  } else {
+    cat("Notice: 'lower' or 'upper' vectors not found in fit object.\n")
+  }
+  
+  cat("----------------------------------------------------\n")
 }

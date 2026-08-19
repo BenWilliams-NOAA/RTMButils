@@ -4,14 +4,12 @@
 \alias{resids}
 \title{get all residual plots for RTMB model}
 \usage{
-resids(object, var = "fish_age", outlier = 3, label = "Age", addCI = TRUE)
+resids(object, var = "fish_age", label = "Age", addCI = TRUE, seed = 99801)
 }
 \arguments{
 \item{object}{RTMButils::run_model() output}
 
 \item{var}{variable name, default "fish_age"}
-
-\item{outlier}{outlier size, default: 3}
 
 \item{label}{axis label}
 
