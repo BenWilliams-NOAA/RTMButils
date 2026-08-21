@@ -227,17 +227,28 @@ pearson <- function(obs, pred, iss, yrs, wt, ind, outlier, label, theta = NULL) 
 #' ind = ages
 #' agg(obs, pred, ind, label = 'Age')
 #' }
-agg <- function(obs, pred, ind, label) {
+agg <- function(obs, pred, ind, label, iss, wt) {
 
-  df = data.frame(obs = rowSums(obs)/sum(obs),
-                   pred = rowSums(pred)/sum(pred),
-                   ind = ind)
+  N = iss * wt
+  obs_wt <- obs * N
+  pred_wt <- pred * N
+
+  df = data.frame(obs = rowSums(obs_wt)/sum(obs_wt),
+                  pred = rowSums(pred_wt)/sum(pred_wt),
+                  ind = ind)
+  iss_tot = sum(N)
+  agg_effn <- sum((1 - df$pred) * df$pred) / sum((df$obs - df$pred)^2)
+  stat_label <- sprintf("ISS: %.0f\nESS: %.1f", iss_tot, agg_effn)
 
   df %>%
     ggplot2::ggplot(ggplot2::aes(ind, pred)) +
     ggplot2::geom_bar(ggplot2::aes(y=obs), stat = 'identity', alpha=0.4) +
     ggplot2::geom_point() +
     ggplot2::geom_line() +
+    ggplot2::annotate("text", 
+                      x = Inf, y = Inf, 
+                      label = stat_label, 
+                      hjust = 1.1, vjust = 1.5) +
     tickr::scale_x_tickr(data=df, var=ind, var_min=0) +
     ggplot2::xlab(label) +
     ggplot2::ylab('')
@@ -333,7 +344,7 @@ sample_size <- function(obs, pred, iss, yrs, wt, theta = NULL){
   obs_p = sweep(obs, 2, colSums(obs), "/")
   data.frame(year = yrs,
              ISS = iss * wt,
-             effN = effn(obs_p, pred, iss, wt),
+             ESS = effn(obs_p, pred, iss, wt),
              sdnr = sdnr(obs_p, pred, iss, wt, theta)) -> df
 
   # if theta is provided, append Dirichlet-Multinomial effective sample size
@@ -345,7 +356,7 @@ sample_size <- function(obs, pred, iss, yrs, wt, theta = NULL){
     tidyr::pivot_longer(-year) %>%
     dplyr::mutate(grp = ifelse(name=='sdnr', 'SDNR', 'Sample size')) -> df
 
-  color_map <- c("effN" = "#7E1700", "ISS" = "#5DC0D2", "DM_ESS" = "#00A08A", "sdnr" = "black")
+  color_map <- c("ESS" = "#7E1700", "ISS" = "#5DC0D2", "DM_ESS" = "#00A08A", "sdnr" = "black")
 
   df %>%
     ggplot2::ggplot(ggplot2::aes(year, value, color = name)) +
@@ -353,7 +364,7 @@ sample_size <- function(obs, pred, iss, yrs, wt, theta = NULL){
     ggplot2::facet_wrap(~grp, scales = 'free_y', dir = 'h') +
     ggplot2::scale_color_manual("", values = color_map) +
     ggplot2::expand_limits(y = 0) +
-    ggplot2::theme(legend.position=c(0.1,0.1)) +
+    ggplot2::theme(legend.position=c(0.8,0.1)) +
     tickr::scale_x_tickr(data=df, var=year, by=10, var_min = 1960) +
     ggplot2::xlab('Year') +
     ggplot2::ylab('Value')
@@ -404,7 +415,7 @@ resids <- function(object, var = "fish_age", label = 'Age', addCI = TRUE, seed =
   list(osa = osa_obj$osa,
        qq = osa_obj$qq,
        pearson = pearson(obs_prop, pred_prop, iss=iss, wt = wt, yrs=yrs, ind=ind, outlier=outlier, label = label),
-       agg = agg(obs_prop, pred_prop, ind, label=label),
+       agg = agg(obs_prop, pred_prop, ind, label=label, iss, wt),
        annual = annual(obs_prop, pred_prop, ind, yrs, label=label),
        ss = sample_size(obs_prop, pred_prop, iss, yrs, wt) )
 }

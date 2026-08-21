@@ -4,7 +4,7 @@
 \alias{agg}
 \title{aggregate residual plot for RTMB model}
 \usage{
-agg(obs, pred, ind, label)
+agg(obs, pred, ind, label, iss, wt)
 }
 \arguments{
 \item{obs}{observed comp - input sample size and comp weighting adjusted}
