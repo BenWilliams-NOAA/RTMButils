@@ -21,32 +21,24 @@ plot_catch <- function(year, output, folder, save=TRUE){
   # set view
   ggplot2::theme_set(afscassess::theme_report())
 
+  id = deparse(substitute(output))
   dat = output$dat
   rpt = output$rpt
 
   data.frame(year = rpt$years,
-             obs = data$catch_obs,
-             pred = rpt$catch_pred,
-             years = "All years") -> df
-
-  tidytable::filter(df, year %in% (max(df$year) - 20):max(df$year)) %>%
-    tidytable::mutate(years = "Recent years") %>%
-    tidytable::bind_rows(df) %>%
-    tidytable::pivot_longer(c(-year, -years)) %>%
-    ggplot2::ggplot(ggplot2::aes(year, value, color = name, lty = name)) +
-    ggplot2::geom_line() +
-    scico::scale_color_scico_d(name = "", palette = "roma") +
-    ggplot2::scale_linetype_manual(name = "",
-                                   values = c(1,1)) +
-    ggplot2::facet_wrap(~years, scales = "free",
-                        dir = "v") +
-    ggplot2::ylab("Catch (kt)") +
-    ggplot2::xlab("Year") +
-    ggplot2::expand_limits(y = 0) +
-    tickr::scale_x_tickr(data=df, var=year, by = 10, var_min = 1960) +
-    ggplot2::scale_y_continuous(labels = scales::comma) +
-    ggplot2::theme(legend.justification=c(1,0),
-                   legend.position=c(0.98,0.8))
+             obs = data$catch_obs) %>% 
+  mutate(!!id := rpt$catch_pred) %>%
+    tidyr::pivot_longer(-year) %>%
+  ggplot(aes(year, value, color = name, linetype = name, shape = name)) + 
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(labels = scales::comma) +
+  scale_linetype_manual("", values = c(1,0)) +
+  scale_shape_manual("", values = c(NA,19)) +
+  tickr::scale_x_tickr('Year', data=data.frame(year = dat$years), var=year) +
+  scico::scale_color_scico_d("", palette = 'grayC', end=0.3) +
+  ylab('Catch (t)') +
+  theme(legend.position = c(x=0.8, y=0.8))
 
   if(isTRUE(save)) {
     ggplot2::ggsave(here::here(year, folder, "figs", "catch.png"),
@@ -61,6 +53,7 @@ plot_catch <- function(year, output, folder, save=TRUE){
 #' @param output RTMButils model run output
 #' @param folder folder name model is in
 #' @param save default is TRUE, saves fig to the folder the model is in
+#' @import data.table
 #'
 #' @export
 #'
@@ -71,7 +64,7 @@ plot_biomass <- function(year, output, folder, save=TRUE) {
   }
   # set view
   ggplot2::theme_set(afscassess::theme_report())
-
+  vars = c("spawn_bio", "tot_bio")
   summary(output$sd, "report") %>%
     as.data.frame() %>%
     tibble::rownames_to_column("item")  %>%
@@ -79,12 +72,11 @@ plot_biomass <- function(year, output, folder, save=TRUE) {
                       uci = Estimate + 1.96*`Std. Error`) %>%
     tidytable::mutate(item = gsub("\\..*", "", item)) %>%
     tidytable::filter(item %in% vars) %>%
-    tidytable::mutate(year = rep(data$years, length(vars))) %>%
+    tidytable::mutate(year = rep(.data$years, length(vars))) %>%
     tidytable::select(year, item, value = Estimate, se = `Std. Error`, lci, uci) -> df
 
   df %>%
-    tidytable::filter(item  %in% c('spawn_bio', 'tot_bio')) %>%
-    tidytable::mutate(item = tidytable::case_when(item == 'spawn_bio' ~ "Spawning biomass",
+  tidytable::mutate(item = tidytable::case_when(item == 'spawn_bio' ~ "Spawning biomass",
                                                   item == 'tot_bio' ~ "Total biomass"),
                       value = value / 1000,
                       lci = lci / 1000,
@@ -214,7 +206,7 @@ plot_size_comps <- function(year, output, folder, save = TRUE, type) {
       tidytable::mutate(year = rep(yrs, each = length(lengths)),
                         id = var_name)
   }
-
+0000
   obs = cleanup(obs, lengths, yrs)
   pred = cleanup(pred, lengths, yrs)
 

@@ -43,9 +43,9 @@ calculate_francis_weight <- function(rpt, data, comp_type = "fish_size") {
 #'
 #' @param output The output from RTMButils::run_model() that contains the model, named data list, and named parameter list.
 #' @param iters number of reweighting iterations.
-#' @param max_one cap the weight at 1, default: TRUE
+#' @param max_one cap the weight at 1, default: FALSE
 #' @export
-run_model_reweight <- function(output, iters = 10, max_one = TRUE) {
+run_model_reweight <- function(output, iters = 10, max_one = FALSE) {
   data = output$dat
   map = output$obj$env$map
   fit = output$fit
