@@ -1,99 +1,62 @@
 # plots
 
-#' Plot annual catch
+#' Phase plane plot
 #'
 #' @param year model year
-#' @param output RTMButils model run output
-#' @param folder the model folder
+#' @param output RTMB::run_model() output
+#' @param folder folder model is in
 #' @param save default is TRUE, saves fig to the folder the model is in
 #'
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' plot_catch(year=2026, output = m24_26, folder = "m24_26")
-#' }
-plot_catch <- function(year, output, folder, save=TRUE){
+#' @examples plot_phase_plane(year=2026, output=m24_26, folder="m24-2026")
+plot_phase_plane <- function(year, output, folder=NULL, save = TRUE) {
+ if(is.null(folder) & isTRUE(save)) stop("need to name a folder to save the figure in.")
+  if(!is.null(folder)) dir.create(here::here(year, folder, "figs"), showWarnings = FALSE)
 
-  if (!dir.exists(here::here(year, folder, "figs"))){
-    dir.create(here::here(year, folder, "figs"))
-  }
-  # set view
-  ggplot2::theme_set(afscassess::theme_report())
+    ggplot2::theme_set(afscassess::theme_report())
+  
+  Fabc_ratio <- output$proj$F40[1] / output$proj$F35[1]
+  B_ratio <- output$rpt$B40 / output$rpt$B35
 
-  id = deparse(substitute(output))
-  dat = output$dat
-  rpt = output$rpt
-
-  data.frame(year = rpt$years,
-             obs = data$catch_obs) %>% 
-  mutate(!!id := rpt$catch_pred) %>%
-    tidyr::pivot_longer(-year) %>%
-  ggplot(aes(year, value, color = name, linetype = name, shape = name)) + 
-  geom_point() +
-  geom_line() +
-  scale_y_continuous(labels = scales::comma) +
-  scale_linetype_manual("", values = c(1,0)) +
-  scale_shape_manual("", values = c(NA,19)) +
-  tickr::scale_x_tickr('Year', data=data.frame(year = dat$years), var=year) +
-  scico::scale_color_scico_d("", palette = 'grayC', end=0.3) +
-  ylab('Catch (t)') +
-  theme(legend.position = c(x=0.8, y=0.8))
-
+  segs <- data.frame(
+  # BOTH lines now drop to zero at 0.05 * B_ratio and BOTH kink at B_ratio
+  x1 = c(0.05 * B_ratio, B_ratio, 0.05 * B_ratio, B_ratio), 
+  x2 = c(B_ratio, 2.8, B_ratio, 2.8),             
+  y1 = c(0, 1, 0, Fabc_ratio),
+  y2 = c(1, 1, Fabc_ratio, Fabc_ratio),
+  group = factor(c("ofl", "ofl", "abc", "abc"),
+                 levels = c("ofl", "abc"))
+)
+  
+  p1 = data.frame(year = min(output$rpt$years):(max(output$rpt$years)+2),
+           x = c(output$rpt$spawn_bio, output$proj$spawn_bio[1],  
+                 output$proj$spawn_bio[2]) / output$rpt$B35,
+           y = c(output$rpt$Ft, output$proj$F40 * yld$yld) / output$proj$F35[1]) %>% 
+  tidytable::mutate(label = stringr::str_sub(year, 3),
+                    decade = (floor(year / 10) * 10)) %>% 
+  ggplot2::ggplot(ggplot2::aes(x, y)) +
+  geom_path(aes(color = decade), show.legend = FALSE) +
+  ggplot2::geom_label(ggplot2::aes(label=label, color = decade), linewidth = 0,
+                      show.legend = FALSE, size = 3, family="Times", alpha = 0.5) +
+  ggplot2::geom_segment(data = segs, ggplot2::aes(x=x1, y=y1, xend=x2, yend=y2, linetype=group)) +
+  ggplot2::scale_linetype_manual(values = c(1, 3),
+                                 labels = c(expression(italic(F[OFL])),
+                                            expression(italic(F[ABC]))),
+                                 name = "") +
+  scico::scale_color_scico(palette = "roma") +
+  ggplot2::ylab(expression(italic(F/F["35%"]))) +
+  ggplot2::xlab(expression(italic(SSB/B["35%"]))) +
+  ggplot2::theme(legend.justification=c(1,0),
+                 legend.position=c(0.9,0.85)) 
+  
   if(isTRUE(save)) {
-    ggplot2::ggsave(here::here(year, folder, "figs", "catch.png"),
+    ggplot2::ggsave(plot = p1, filename = here::here(year, folder, "figs", "phase_plane.png"),
                     width = 6.5, height = 6.5, units = "in", dpi = 200)
   }
-
+  p1
 }
 
-#' Plot biomass
-#'
-#' @param year model year
-#' @param output RTMButils model run output
-#' @param folder folder name model is in
-#' @param save default is TRUE, saves fig to the folder the model is in
-#' @import data.table
-#'
-#' @export
-#'
-plot_biomass <- function(year, output, folder, save=TRUE) {
-
-  if (!dir.exists(here::here(year, folder, "figs"))){
-    create.dir(here::here(year, folder, "figs"))
-  }
-  # set view
-  ggplot2::theme_set(afscassess::theme_report())
-  vars = c("spawn_bio", "tot_bio")
-  summary(output$sd, "report") %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column("item")  %>%
-    tidytable::mutate(lci = Estimate - 1.96*`Std. Error`,
-                      uci = Estimate + 1.96*`Std. Error`) %>%
-    tidytable::mutate(item = gsub("\\..*", "", item)) %>%
-    tidytable::filter(item %in% vars) %>%
-    tidytable::mutate(year = rep(.data$years, length(vars))) %>%
-    tidytable::select(year, item, value = Estimate, se = `Std. Error`, lci, uci) -> df
-
-  df %>%
-  tidytable::mutate(item = tidytable::case_when(item == 'spawn_bio' ~ "Spawning biomass",
-                                                  item == 'tot_bio' ~ "Total biomass"),
-                      value = value / 1000,
-                      lci = lci / 1000,
-                      uci = uci / 1000) %>%
-    ggplot2::ggplot(ggplot2::aes(year, value)) +
-    ggplot2::geom_line() +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = lci, ymax = uci), alpha = 0.1) +
-    ggplot2::facet_wrap(~item, ncol = 1, scales = "free_y") +
-    ggplot2::scale_y_continuous(name = "Biomass (kt)", labels = scales::comma) +
-    ggplot2::expand_limits(y = 0) +
-    tickr::scale_x_tickr(name = "Year", data=df, var=year, by=10, var_min = 1960)
-
-  if(isTRUE(save)) {
-    ggplot2::ggsave(here::here(year, folder, "figs", "est_biomass.png"),
-                    width = 6.5, height = 6.5, units = "in", dpi = 200)
-  }
-}
 
 
 
@@ -231,4 +194,48 @@ plot_size_comps <- function(year, output, folder, save = TRUE, type) {
                     width = 6.5, height = 6.5, units = "in", dpi = 200)
   }
   p1
+}
+
+
+#' Recruitment/SSB plot
+#'
+#' @param year model year
+#' @param output RTMB::run_model() output
+#' @param folder folder model is in
+#' @param save default is TRUE, saves fig to the folder the model is in
+#'
+#' @export
+#'
+#' @examples plot_rec_ssb(year=2026, output=m24_26, folder="m24-2026")
+plot_rec_ssb <- function(year, output, folder = NULL, save=TRUE){
+
+  if(is.null(folder) & isTRUE(save)) stop("need to name a folder to save the figure in.")
+  if(!is.null(folder)) dir.create(here::here(year, folder, "figs"), showWarnings = FALSE)
+
+    ggplot2::theme_set(afscassess::theme_report())
+  rec_age = output$rpt$ages[1]
+
+  p1 = data.frame(year = output$rpt$years,
+           spawn_bio = output$rpt$spawn_bio,
+           recruits = output$rpt$recruits) %>% 
+  dplyr::mutate(spawn_bio = spawn_bio / 1000,
+                recruits = dplyr::lead(recruits, n = rec_age),
+                label = stringr::str_sub(year, 3),
+                decade = (floor(year/10) * 10)) %>% 
+  tidyr::drop_na() %>% 
+   ggplot2::ggplot(ggplot2::aes(spawn_bio, recruits)) + 
+  ggplot2::geom_label(ggplot2::aes(label = label, color = decade), 
+                      label.size = 0, show.legend = FALSE, 
+                      size = 4, family = "Times", alpha = 0.85) + 
+  ggplot2::expand_limits(x = 0, y = 0) + 
+  scico::scale_color_scico(palette = "roma") + 
+  ggplot2::xlab("Female spawning biomass (kt)") + 
+  ggplot2::ylab("Recruitment (millions)")
+  
+  if(isTRUE(save)) {
+    ggplot2::ggsave(plot = p1, filename = here::here(year, folder, "figs", "rec_ssb.png"),
+                    width = 6.5, height = 6.5, units = "in", dpi = 200)
+  }
+  p1
+
 }

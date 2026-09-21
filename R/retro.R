@@ -45,23 +45,23 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
   map = obj$env$map
   fit = output$fit
   ll = output$lower
-	ul = output$upper
+  ul = output$upper
   nms = unique(names(fit$par))
   split_list = split(fit$par, names(fit$par))
   pars = lapply(split_list, unname)
   p0 = pars[nms]
-
+ 
   # put any mapped items back into the pars
   if(!is.null(map)) {
     p0[[names(map)]] = obj$env$parList()[[names(map)]]
   }
   n_years = length(years)
-
+ 
   # run retrospective peels
   message(paste("Running", n_peels, "retrospective peels..."))
   reps = list()
   N_base_sum_catch = sum(d0$catch_ind)
-
+ 
   for (i in 1:n_peels) {
     data = d0
     pars = p0
@@ -73,6 +73,8 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
     data$catch_ind = head(d0$catch_ind, -i)
     data$catch_obs = head(d0$catch_obs, -i)
     data$catch_wt = head(d0$catch_wt, -i)
+    lower_i = ll
+    upper_i = ul
 
     data$srv_ind[peel_indices] <- 0
     if (i + 2 <= n_years) {
@@ -102,14 +104,29 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
 
     pars = lapply(pars, unname)
 
+    # peel the bounds vectors
+    # cCheck if bounds are flat vectors matching the base model's parameter length
+    if (!is.null(lower_i) && length(lower_i) == length(fit$par)) {
+      active_names <- names(fit$par)
+      for (p_name in peel_pars) {
+        idx <- which(active_names == p_name)
+        if (length(idx) >= i) {
+          remove_idx <- tail(idx, i)
+          lower_i <- lower_i[-remove_idx]
+          upper_i <- upper_i[-remove_idx]
+          active_names <- active_names[-remove_idx] 
+        }
+      }
+    } else if (is.list(lower_i)) {
+      for (p_name in peel_pars) {
+        if (!is.null(lower_i[[p_name]])) lower_i[[p_name]] <- head(lower_i[[p_name]], -i)
+        if (!is.null(upper_i[[p_name]])) upper_i[[p_name]] <- head(upper_i[[p_name]], -i)
+      }
+    }
+
     # refit model for the peel
-    new_run = run_model(model = model, data = data, pars = pars, map = map, lower=lower, upper=upper)
-    # cmb = function(f, d) function(p) f(p, d)
-    # obj <- RTMB::MakeADFun(cmb(model, data), pars, map = map, silent = TRUE)
-    # fit <- nlminb(start = obj$par,
-    #               objective = obj$fn,
-    #               gradient = obj$gr,
-    #               control = control)
+    new_run = run_model(model = model, data = data, pars = pars, map = map, lower=lower_i, upper=upper_i)
+    
     reps[[paste0('sd', i)]] <- new_run$sd
   }
 
@@ -167,7 +184,7 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
     dplyr::select(item, year, base_est = Estimate) -> terminal_base
 
   dplyr::left_join(terminal_peels, terminal_base, by = c("item", "year")) %>%
-    dplyr::mutate(pdiff = (peel_est - base_est) / base_est) %>% # Using your formula
+    dplyr::mutate(pdiff = (peel_est - base_est) / base_est) %>% 
     tidyr::drop_na() %>%
     dplyr::group_by(item) %>%
     dplyr::summarise( rho = mean(pdiff, na.rm = TRUE),
@@ -185,7 +202,7 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
     plot_title = paste0(toupper(substring(plot_title, 1, 1)), substring(plot_title, 2))
 
     plot_data_qty = dplyr::filter(all_data, item == qty)
-    annot_x = min(plot_data_qty$year) + 1 # annotation near the start
+    annot_x = min(plot_data_qty$year) + 1 
     annot_y = max(plot_data_qty$uci, na.rm = TRUE) * 0.9
 
     # plot 1: time series
@@ -212,7 +229,7 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
           dplyr::filter(item == qty, peel == 0) %>%
           dplyr::select(year, base_est = Estimate),
         by = "year") %>%
-      dplyr::mutate(pdiff = (Estimate - base_est) / base_est) %>% # standard relative diff
+      dplyr::mutate(pdiff = (Estimate - base_est) / base_est) %>% 
       tidyr::drop_na() %>%
       ggplot2::ggplot(ggplot2::aes(year,pdiff, color = peel, group = peel)) +
       ggplot2::geom_line(show.legend = FALSE) +

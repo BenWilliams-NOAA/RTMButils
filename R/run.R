@@ -34,25 +34,26 @@ solve_Fx <- function(target, M, slx, wt_mat, sp_fract, A, SB0_val) {
 #' @param pars named parameter list
 #' @param map named mapping list, default: NULL
 #' @param proj whether to run the projection module: TRUE
+#' @param sd whether to run the sd module: TRUE
 #' @param lower unnamed vector of lower parameter limits, default: NULL
 #' @param upper unnamed vector of upper parameter limits, default: NULL
 #' @param random vector of parameter(s) to be random effects, default: NULL
 #' @param newton_loops number of newton loops to run to reduce gradient: 3 - note only works for unconstrained models
 #' @param control optimization settings list(iter.max = 1e5, eval.max = 2e4, rel.tol = 1e-12)
-#'
+#' @param silent remove optimization output, default: TRUE 
 #' @export
-run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, upper=NULL, random = NULL, newton_loops = 3, control = list(iter.max = 1e5, eval.max = 2e4, rel.tol = 1e-12)) {
+run_model <- function(model, data, pars, map=NULL, proj = TRUE, sd = TRUE, lower=NULL, upper=NULL, random = NULL, newton_loops = 3, control = list(iter.max = 1e5, eval.max = 2e4, rel.tol = 1e-12), silent = TRUE) {
 
   # build AD function
-  obj <- RTMB::MakeADFun(cmb(model, data), pars, map = map, random = random)
+  obj <- RTMB::MakeADFun(cmb(model, data), pars, map = map, random = random, silent=TRUE)
   
   # default bounds if not supplied
   if (is.null(lower)) lower <- rep(-Inf, length(obj$par))
   if (is.null(upper)) upper <- rep(Inf, length(obj$par))
-  
+  start_par <- pmax(pmin(obj$par, upper), lower)
   # optimization 
   fit <- nlminb(
-    start = obj$par, 
+    start = start_par, 
     objective = obj$fn, 
     gradient = obj$gr, 
     control = control, 
@@ -112,10 +113,14 @@ run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, uppe
     proj_out = NULL
   }
   
-  sd <- tryCatch(RTMB::sdreport(obj), error = function(e) {
-    warning("sdreport failed: ", e$message)
-    return(NULL)
-  })
+  if(isTRUE(sd)) {
+    sd <- tryCatch(RTMB::sdreport(obj), error = function(e) {
+      warning("sdreport failed: ", e$message)
+      return(NULL)
+    })
+  } else {
+    sd = NULL
+  }
   
   return(list(
     obj   = obj, 
@@ -128,7 +133,8 @@ run_model <- function(model, data, pars, map=NULL, proj = TRUE, lower=NULL, uppe
     lower = lower, 
     upper = upper
   ))
-}
+  }
+
 
 
   

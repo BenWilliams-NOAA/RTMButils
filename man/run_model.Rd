@@ -10,11 +10,13 @@ run_model(
   pars,
   map = NULL,
   proj = TRUE,
+  sd = TRUE,
   lower = NULL,
   upper = NULL,
   random = NULL,
   newton_loops = 3,
-  control = list(iter.max = 1e+05, eval.max = 20000, rel.tol = 1e-12)
+  control = list(iter.max = 1e+05, eval.max = 20000, rel.tol = 1e-12),
+  silent = TRUE
 )
 }
 \arguments{
@@ -28,6 +30,8 @@ run_model(
 
 \item{proj}{whether to run the projection module: TRUE}
 
+\item{sd}{whether to run the sd module: TRUE}
+
 \item{lower}{unnamed vector of lower parameter limits, default: NULL}
 
 \item{upper}{unnamed vector of upper parameter limits, default: NULL}
@@ -37,6 +41,8 @@ run_model(
 \item{newton_loops}{number of newton loops to run to reduce gradient: 3 - note only works for unconstrained models}
 
 \item{control}{optimization settings list(iter.max = 1e5, eval.max = 2e4, rel.tol = 1e-12)}
+
+\item{silent}{remove optimization output, default: TRUE}
 }
 \description{
 Run RTMB model
