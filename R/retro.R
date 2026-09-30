@@ -31,234 +31,234 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
                       peel_pars = c("log_Ft", "log_Rt"),
                       save_outputs = TRUE) {
 
-  # setup and load base model components
-  message("Starting retrospective analysis...")
-  retro_path <- herein(year, folder, subfolder, "retro")
-  if (save_outputs && !dir.exists(retro_path)) {
-    dir.create(retro_path, recursive = TRUE)
-  }
-
-  model = output$model
-  d0 = output$dat
-  years = output$rpt$years
-  obj = output$obj
-  map = obj$env$map
-  fit = output$fit
-  ll = output$lower
-  ul = output$upper
-  nms = unique(names(fit$par))
-  split_list = split(fit$par, names(fit$par))
-  pars = lapply(split_list, unname)
-  p0 = pars[nms]
- 
-  # put any mapped items back into the pars
-  if(!is.null(map)) {
-    p0[[names(map)]] = obj$env$parList()[[names(map)]]
-  }
-  n_years = length(years)
- 
-  # run retrospective peels
-  message(paste("Running", n_peels, "retrospective peels..."))
-  reps = list()
-  N_base_sum_catch = sum(d0$catch_ind)
- 
-  for (i in 1:n_peels) {
-    data = d0
-    pars = p0
-
-    peel_indices = (n_years - i + 1):n_years
-
-    # peel data based on the logic in the original script
-    data$years = head(d0$years, -i)
-    data$catch_ind = head(d0$catch_ind, -i)
-    data$catch_obs = head(d0$catch_obs, -i)
-    data$catch_wt = head(d0$catch_wt, -i)
-    lower_i = ll
-    upper_i = ul
-
-    data$srv_ind[peel_indices] <- 0
-    if (i + 2 <= n_years) {
-      peel_extra_2 = (n_years - (i + 2) + 1):n_years
-      data$fish_age_ind[peel_extra_2] <- 0
-    } else {
-      # if peel removes all years, zero out the whole vector
-      data$fish_age_ind[] <- 0
+    # setup and load base model components
+    message("Starting retrospective analysis...")
+    retro_path <- herein(year, folder, subfolder, "retro")
+    if (save_outputs && !dir.exists(retro_path)) {
+      dir.create(retro_path, recursive = TRUE)
     }
 
-    if (i + 1 <= n_years) {
-      peel_extra_1 =(n_years - (i + 1) + 1):n_years
-      data$srv_age_ind[peel_extra_1] <- 0
-      data$fish_size_ind[peel_extra_1] <- 0
-    } else {
-      # if peel removes all years, zero out the whole vector
-      data$srv_age_ind[] <- 0
-      data$fish_size_ind[] <- 0
+    model = output$model
+    d0 = output$dat
+    years = output$rpt$years
+    obj = output$obj
+    map = obj$env$map
+    fit = output$fit
+    ll = output$lower
+    ul = output$upper
+    nms = unique(names(fit$par))
+    split_list = split(fit$par, names(fit$par))
+    pars = lapply(split_list, unname)
+    p0 = pars[nms]
+  
+    # put any mapped items back into the pars
+    if(!is.null(map)) {
+      p0[[names(map)]] = obj$env$parList()[[names(map)]]
     }
+    n_years = length(years)
+  
+    # run retrospective peels
+    message(paste("Running", n_peels, "retrospective peels..."))
+    reps = list()
+    N_base_sum_catch = sum(d0$catch_ind)
+  
+    for (i in 1:n_peels) {
+      data = d0
+      pars = p0
 
-    # make sure data works
-    data = lapply(data, unname)
+      peel_indices = (n_years - i + 1):n_years
 
-    # peel parameters
-    pars$log_Ft = head(p0$log_Ft, -i)
-    pars$log_Rt = head(p0$log_Rt, -i)
+      # peel data based on the logic in the original script
+      data$years = head(d0$years, -i)
+      data$catch_ind = head(d0$catch_ind, -i)
+      data$catch_obs = head(d0$catch_obs, -i)
+      data$catch_wt = head(d0$catch_wt, -i)
+      lower_i = ll
+      upper_i = ul
 
-    pars = lapply(pars, unname)
+      data$srv_ind[peel_indices] <- 0
+      if (i + 2 <= n_years) {
+        peel_extra_2 = (n_years - (i + 2) + 1):n_years
+        data$fish_age_ind[peel_extra_2] <- 0
+      } else {
+        # if peel removes all years, zero out the whole vector
+        data$fish_age_ind[] <- 0
+      }
 
-    # peel the bounds vectors
-    # cCheck if bounds are flat vectors matching the base model's parameter length
-    if (!is.null(lower_i) && length(lower_i) == length(fit$par)) {
-      active_names <- names(fit$par)
-      for (p_name in peel_pars) {
-        idx <- which(active_names == p_name)
-        if (length(idx) >= i) {
-          remove_idx <- tail(idx, i)
-          lower_i <- lower_i[-remove_idx]
-          upper_i <- upper_i[-remove_idx]
-          active_names <- active_names[-remove_idx] 
+      if (i + 1 <= n_years) {
+        peel_extra_1 =(n_years - (i + 1) + 1):n_years
+        data$srv_age_ind[peel_extra_1] <- 0
+        data$fish_size_ind[peel_extra_1] <- 0
+      } else {
+        # if peel removes all years, zero out the whole vector
+        data$srv_age_ind[] <- 0
+        data$fish_size_ind[] <- 0
+      }
+
+      # make sure data works
+      data = lapply(data, unname)
+
+      # peel parameters
+      pars$log_Ft = head(p0$log_Ft, -i)
+      pars$log_Rt = head(p0$log_Rt, -i)
+
+      pars = lapply(pars, unname)
+
+      # peel the bounds vectors
+      # cCheck if bounds are flat vectors matching the base model's parameter length
+      if (!is.null(lower_i) && length(lower_i) == length(fit$par)) {
+        active_names <- names(fit$par)
+        for (p_name in peel_pars) {
+          idx <- which(active_names == p_name)
+          if (length(idx) >= i) {
+            remove_idx <- tail(idx, i)
+            lower_i <- lower_i[-remove_idx]
+            upper_i <- upper_i[-remove_idx]
+            active_names <- active_names[-remove_idx] 
+          }
+        }
+      } else if (is.list(lower_i)) {
+        for (p_name in peel_pars) {
+          if (!is.null(lower_i[[p_name]])) lower_i[[p_name]] <- head(lower_i[[p_name]], -i)
+          if (!is.null(upper_i[[p_name]])) upper_i[[p_name]] <- head(upper_i[[p_name]], -i)
         }
       }
-    } else if (is.list(lower_i)) {
-      for (p_name in peel_pars) {
-        if (!is.null(lower_i[[p_name]])) lower_i[[p_name]] <- head(lower_i[[p_name]], -i)
-        if (!is.null(upper_i[[p_name]])) upper_i[[p_name]] <- head(upper_i[[p_name]], -i)
+
+      # refit model for the peel
+      new_run = run_model(model = model, data = data, pars = pars, map = map, lower=lower_i, upper=upper_i)
+      
+      reps[[paste0('sd', i)]] <- new_run$sd
+    }
+
+    if (save_outputs) {
+      saveRDS(reps, file.path(retro_path, 'reps.RDS'))
+      message(paste("Retrospective fits saved to:", file.path(retro_path, 'reps.RDS')))
+    }
+
+    # process outputs
+    message("Processing results and calculating Mohn's rho...")
+    # get sdreport summary from the base model fit
+    base_sds = as.data.frame(summary(output$sd))
+    base_sds = tibble::rownames_to_column(base_sds, "item")
+
+    # process the retrospective fits
+    purrr::map(reps, summary) %>%
+      purrr::map(., as.data.frame) %>%
+      purrr::map(., tibble::rownames_to_column, "item") -> retro_sds_list
+
+    # tidy the retrospective data
+    dplyr::bind_rows(retro_sds_list, .id = 'id') %>%
+      dplyr::mutate(peel = as.numeric(gsub("sd", "", id)),
+                    item = gsub("\\..*", "", item)) %>%
+      dplyr::filter(item %in% quantities) %>%
+      dplyr::select(item, Estimate, Std_Error = `Std. Error`, peel) -> retro_df
+
+    # tidy the base model data
+    base_sds %>%
+      dplyr::mutate(peel = 0,
+                    item = gsub("\\..*", "", item)) %>%
+      dplyr::filter(item %in% quantities) %>%
+      dplyr::select(item, Estimate, Std_Error = `Std. Error`, peel) -> base_df
+
+    # combine and add years
+    dplyr::bind_rows(retro_df, base_df) %>%
+      dplyr::group_by(peel, item) %>%
+      dplyr::mutate(year = years[1:dplyr::n()]) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(lci = Estimate - 1.96 * Std_Error,
+                    uci = Estimate + 1.96 * Std_Error,
+                    lci = ifelse(lci < 0, 0, lci),
+                    peel = factor(peel, levels = as.character(0:n_peels))) -> all_data
+
+    # calculate Mohn's Rho and MAE
+    all_data %>%
+      dplyr::filter(peel != 0) %>%
+      dplyr::group_by(item, peel) %>%
+      dplyr::filter(year == max(year)) %>%
+      dplyr::summarise(year = max(year),
+                      peel_est = Estimate,
+                      .groups = 'drop') -> terminal_peels
+
+    all_data %>%
+      dplyr::filter(peel == 0) %>%
+      dplyr::select(item, year, base_est = Estimate) -> terminal_base
+
+    dplyr::left_join(terminal_peels, terminal_base, by = c("item", "year")) %>%
+      dplyr::mutate(pdiff = (peel_est - base_est) / base_est) %>% 
+      tidyr::drop_na() %>%
+      dplyr::group_by(item) %>%
+      dplyr::summarise( rho = mean(pdiff, na.rm = TRUE),
+                        mae = median(abs(pdiff), na.rm = TRUE)) -> rho_metrics
+
+    # plots
+    message("Generating plots...")
+    plot_list <- list()
+
+    for (qty in quantities) {
+      metrics = dplyr::filter(rho_metrics, item == qty)
+      l1 = paste("Mohn's rho =", round(metrics$rho, 2))
+      l2 = paste("MAE =", round(metrics$mae, 2))
+      plot_title = gsub("_", " ", qty)
+      plot_title = paste0(toupper(substring(plot_title, 1, 1)), substring(plot_title, 2))
+
+      plot_data_qty = dplyr::filter(all_data, item == qty)
+      annot_x = min(plot_data_qty$year) + 1 
+      annot_y = max(plot_data_qty$uci, na.rm = TRUE) * 0.9
+
+      # plot 1: time series
+      p1 <- ggplot2::ggplot(plot_data_qty,
+                            ggplot2::aes(x = year, y = Estimate, color = peel, group = peel, fill = peel)) +
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = lci, ymax = uci), alpha = 0.1, color = NA) +
+        ggplot2::geom_line() +
+        scico::scale_color_scico_d("Peel", palette = 'roma', direction = -1) +
+        scico::scale_fill_scico_d("Peel", palette = 'roma', direction = -1) +
+        ggplot2::annotate(geom = 'text',
+                          x = annot_x,
+                          y = annot_y,
+                          label = paste(l1, l2, sep = "\n"),
+                          hjust = 0) +
+        ggplot2::scale_y_continuous(labels = scales::comma) +
+        ggplot2::labs(y = paste(plot_title, "(t)"), x = "Year", title = paste("Retrospective Pattern:", plot_title)) +
+        ggplot2::expand_limits(y = 0)
+
+      # plot 2: relative difference
+      p2 <- all_data %>%
+        dplyr::filter(item == qty, peel != 0) %>%
+        dplyr::left_join(
+          all_data %>%
+            dplyr::filter(item == qty, peel == 0) %>%
+            dplyr::select(year, base_est = Estimate),
+          by = "year") %>%
+        dplyr::mutate(pdiff = (Estimate - base_est) / base_est) %>% 
+        tidyr::drop_na() %>%
+        ggplot2::ggplot(ggplot2::aes(year,pdiff, color = peel, group = peel)) +
+        ggplot2::geom_line(show.legend = FALSE) +
+        scico::scale_color_scico_d("Peel", palette = 'roma', direction = -1) +
+        ggplot2::geom_hline(yintercept = 0, linetype = 3) +
+        ggplot2::scale_y_continuous(labels = scales::percent) +
+        ggplot2::labs(y = "Relative Difference from Base", x = "Year")
+
+      combined_plot = patchwork::wrap_plots(p1, p2, ncol = 1, heights = c(3, 1.5)) +
+        patchwork::plot_layout(guides = "collect")
+
+      plot_list[[qty]] = combined_plot
+
+      if (save_outputs) {
+        file_name = paste0(gsub(" ", "_", tolower(plot_title)), "_retro.png")
+        ggplot2::ggsave(
+          filename = file.path(retro_path, file_name),
+          plot = combined_plot,
+          width = 7, height = 7, units = "in", dpi = 300
+        )
       }
     }
 
-    # refit model for the peel
-    new_run = run_model(model = model, data = data, pars = pars, map = map, lower=lower_i, upper=upper_i)
-    
-    reps[[paste0('sd', i)]] <- new_run$sd
-  }
-
-  if (save_outputs) {
-    saveRDS(reps, file.path(retro_path, 'reps.RDS'))
-    message(paste("Retrospective fits saved to:", file.path(retro_path, 'reps.RDS')))
-  }
-
-  # process outputs
-  message("Processing results and calculating Mohn's rho...")
-  # get sdreport summary from the base model fit
-  base_sds = as.data.frame(summary(output$sd))
-  base_sds = tibble::rownames_to_column(base_sds, "item")
-
-  # process the retrospective fits
-  purrr::map(reps, summary) %>%
-    purrr::map(., as.data.frame) %>%
-    purrr::map(., tibble::rownames_to_column, "item") -> retro_sds_list
-
-  # tidy the retrospective data
-  dplyr::bind_rows(retro_sds_list, .id = 'id') %>%
-    dplyr::mutate(peel = as.numeric(gsub("sd", "", id)),
-                  item = gsub("\\..*", "", item)) %>%
-    dplyr::filter(item %in% quantities) %>%
-    dplyr::select(item, Estimate, Std_Error = `Std. Error`, peel) -> retro_df
-
-  # tidy the base model data
-  base_sds %>%
-    dplyr::mutate(peel = 0,
-                  item = gsub("\\..*", "", item)) %>%
-    dplyr::filter(item %in% quantities) %>%
-    dplyr::select(item, Estimate, Std_Error = `Std. Error`, peel) -> base_df
-
-  # combine and add years
-  dplyr::bind_rows(retro_df, base_df) %>%
-    dplyr::group_by(peel, item) %>%
-    dplyr::mutate(year = years[1:dplyr::n()]) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(lci = Estimate - 1.96 * Std_Error,
-                  uci = Estimate + 1.96 * Std_Error,
-                  lci = ifelse(lci < 0, 0, lci),
-                  peel = factor(peel, levels = as.character(0:n_peels))) -> all_data
-
-  # calculate Mohn's Rho and MAE
-  all_data %>%
-    dplyr::filter(peel != 0) %>%
-    dplyr::group_by(item, peel) %>%
-    dplyr::filter(year == max(year)) %>%
-    dplyr::summarise(year = max(year),
-                     peel_est = Estimate,
-                     .groups = 'drop') -> terminal_peels
-
-  all_data %>%
-    dplyr::filter(peel == 0) %>%
-    dplyr::select(item, year, base_est = Estimate) -> terminal_base
-
-  dplyr::left_join(terminal_peels, terminal_base, by = c("item", "year")) %>%
-    dplyr::mutate(pdiff = (peel_est - base_est) / base_est) %>% 
-    tidyr::drop_na() %>%
-    dplyr::group_by(item) %>%
-    dplyr::summarise( rho = mean(pdiff, na.rm = TRUE),
-                      mae = median(abs(pdiff), na.rm = TRUE)) -> rho_metrics
-
-  # plots
-  message("Generating plots...")
-  plot_list <- list()
-
-  for (qty in quantities) {
-    metrics = dplyr::filter(rho_metrics, item == qty)
-    l1 = paste("Mohn's rho =", round(metrics$rho, 2))
-    l2 = paste("MAE =", round(metrics$mae, 2))
-    plot_title = gsub("_", " ", qty)
-    plot_title = paste0(toupper(substring(plot_title, 1, 1)), substring(plot_title, 2))
-
-    plot_data_qty = dplyr::filter(all_data, item == qty)
-    annot_x = min(plot_data_qty$year) + 1 
-    annot_y = max(plot_data_qty$uci, na.rm = TRUE) * 0.9
-
-    # plot 1: time series
-    p1 <- ggplot2::ggplot(plot_data_qty,
-                          ggplot2::aes(x = year, y = Estimate, color = peel, group = peel, fill = peel)) +
-      ggplot2::geom_ribbon(ggplot2::aes(ymin = lci, ymax = uci), alpha = 0.1, color = NA) +
-      ggplot2::geom_line() +
-      scico::scale_color_scico_d("Peel", palette = 'roma', direction = -1) +
-      scico::scale_fill_scico_d("Peel", palette = 'roma', direction = -1) +
-      ggplot2::annotate(geom = 'text',
-                        x = annot_x,
-                        y = annot_y,
-                        label = paste(l1, l2, sep = "\n"),
-                        hjust = 0) +
-      ggplot2::scale_y_continuous(labels = scales::comma) +
-      ggplot2::labs(y = paste(plot_title, "(t)"), x = "Year", title = paste("Retrospective Pattern:", plot_title)) +
-      ggplot2::expand_limits(y = 0)
-
-    # plot 2: relative difference
-    p2 <- all_data %>%
-      dplyr::filter(item == qty, peel != 0) %>%
-      dplyr::left_join(
-        all_data %>%
-          dplyr::filter(item == qty, peel == 0) %>%
-          dplyr::select(year, base_est = Estimate),
-        by = "year") %>%
-      dplyr::mutate(pdiff = (Estimate - base_est) / base_est) %>% 
-      tidyr::drop_na() %>%
-      ggplot2::ggplot(ggplot2::aes(year,pdiff, color = peel, group = peel)) +
-      ggplot2::geom_line(show.legend = FALSE) +
-      scico::scale_color_scico_d("Peel", palette = 'roma', direction = -1) +
-      ggplot2::geom_hline(yintercept = 0, linetype = 3) +
-      ggplot2::scale_y_continuous(labels = scales::percent) +
-      ggplot2::labs(y = "Relative Difference from Base", x = "Year")
-
-    combined_plot = patchwork::wrap_plots(p1, p2, ncol = 1, heights = c(3, 1.5)) +
-      patchwork::plot_layout(guides = "collect")
-
-    plot_list[[qty]] = combined_plot
-
-    if (save_outputs) {
-      file_name = paste0(gsub(" ", "_", tolower(plot_title)), "_retro.png")
-      ggplot2::ggsave(
-        filename = file.path(retro_path, file_name),
-        plot = combined_plot,
-        width = 7, height = 7, units = "in", dpi = 300
-      )
-    }
-  }
-
-  message("Done.")
-  return(list(
-    retro_data = all_data,
-    rho_metrics = rho_metrics,
-    plots = plot_list
-  ))
+    message("Done.")
+    return(list(
+      retro_data = all_data,
+      rho_metrics = rho_metrics,
+      plots = plot_list
+    ))
 }
 
 #' Run a prospective analysis (peeling from the start) for an RTMB stock assessment model.
@@ -285,27 +285,24 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     dir.create(pros_path, recursive = TRUE)
   }
 
-  # extract components
-  model = output$model
-  d0 = output$dat
-  obj = output$obj
-  map = obj$env$map
-  fit = output$fit
-  ll = output$lower
-	ul = output$upper
-
-  # parameter list
-  nms = unique(names(fit$par))
-  split_list = split(fit$par, names(fit$par))
-  p0 = lapply(split_list, unname)[nms]
-
-  # mapped parameters are included in p0
-  if(!is.null(map)) {
-    p_full = obj$env$parList()
-    for(m_name in names(map)) {
-      p0[[m_name]] = p_full[[m_name]]
+    model = output$model
+    d0 = output$dat
+    years = output$rpt$years
+    obj = output$obj
+    map = obj$env$map
+    fit = output$fit
+    ll = output$lower
+    ul = output$upper
+    nms = unique(names(fit$par))
+    split_list = split(fit$par, names(fit$par))
+    pars = lapply(split_list, unname)
+    p0 = pars[nms]
+  
+    # put any mapped items back into the pars
+    if(!is.null(map)) {
+      p0[[names(map)]] = obj$env$parList()[[names(map)]]
     }
-  }
+  
 
   base_years = output$rpt$years
   n_years = length(base_years)
