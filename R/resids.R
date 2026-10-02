@@ -20,59 +20,59 @@
 #' osa(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
 #'     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
 #' }
-osa <- function(obs, pred, yrs, ind, label = 'Age', outlier=3, addCI = TRUE) {
+# osa <- function(obs, pred, yrs, ind, label = 'Age', outlier=3, addCI = TRUE) {
   
-  res = compResidual::resMulti(obs, pred)
-  mat = matrix(res, nrow=nrow(res), ncol=ncol(res))
-  df = as.data.frame(mat)
-  names(df) <- yrs
+#   res = compResidual::resMulti(obs, pred)
+#   mat = matrix(res, nrow=nrow(res), ncol=ncol(res))
+#   df = as.data.frame(mat)
+#   names(df) <- yrs
 
-  df %>%
-    dplyr::mutate(ind = head(ind, -1)) %>%
-    tidyr::pivot_longer( -ind, names_to = 'year') %>%
-    dplyr::mutate(year = as.numeric(year),
-           Year = factor(year),
-           id = ifelse(value<0 , 'a', 'b'),
-           Outlier = ifelse(abs(value) >= outlier, "Yes", "No"),
-           Outlier = factor(Outlier, levels = c('No', 'Yes'))) -> df
+#   df %>%
+#     dplyr::mutate(ind = head(ind, -1)) %>%
+#     tidyr::pivot_longer( -ind, names_to = 'year') %>%
+#     dplyr::mutate(year = as.numeric(year),
+#            Year = factor(year),
+#            id = ifelse(value<0 , 'a', 'b'),
+#            Outlier = ifelse(abs(value) >= outlier, "Yes", "No"),
+#            Outlier = factor(Outlier, levels = c('No', 'Yes'))) -> df
 
-  df %>%
-    ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = value, shape = Outlier) ) +
-    geom_point(show.legend=TRUE) +
-    ggplot2::scale_size_area(guide="none", max_size = 3) +
-    scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
-    tickr::scale_y_tickr(data = df, var = ind, var_min=0) +
-    tickr::scale_x_tickr(data = df, var = year) +
-    ggplot2::scale_shape_manual(values = c(19,8), drop = FALSE) +
-    ggplot2::ylab(label) +
-    ggplot2::xlab('Year') +
-    ggplot2::ggtitle('OSA') -> osa
+#   df %>%
+#     ggplot2::ggplot(ggplot2::aes(year, ind, color = value, size = value, shape = Outlier) ) +
+#     geom_point(show.legend=TRUE) +
+#     ggplot2::scale_size_area(guide="none", max_size = 3) +
+#     scico::scale_color_scico(limits = c(-4, 4), palette = 'vik') +
+#     tickr::scale_y_tickr(data = df, var = ind, var_min=0) +
+#     tickr::scale_x_tickr(data = df, var = year) +
+#     ggplot2::scale_shape_manual(values = c(19,8), drop = FALSE) +
+#     ggplot2::ylab(label) +
+#     ggplot2::xlab('Year') +
+#     ggplot2::ggtitle('OSA') -> osa
 
-  res_vec = as.numeric(res) 
-  res_vec = na.omit(res_vec) 
-  sdnr_est = sd(res_vec)
+#   res_vec = as.numeric(res) 
+#   res_vec = na.omit(res_vec) 
+#   sdnr_est = sd(res_vec)
 
-  if(addCI) {
-    df_n = length(res_vec) - 1 # degrees of freedom
-    lci = sqrt(qchisq(0.025, df_n) / df_n) # lower 95% CI
-    hci = sqrt(qchisq(0.975, df_n) / df_n) # upper 95% CI
-    sdnr_text = sprintf("SDNR = %.2f\nExpected (H0: %.2f - %.2f)", sdnr_est, lci, hci)
-  } else {
-    sdnr_text = sprintf("SDNR = %.2f", sdnr_est)
-  }
+#   if(addCI) {
+#     df_n = length(res_vec) - 1 # degrees of freedom
+#     lci = sqrt(qchisq(0.025, df_n) / df_n) # lower 95% CI
+#     hci = sqrt(qchisq(0.975, df_n) / df_n) # upper 95% CI
+#     sdnr_text = sprintf("SDNR = %.2f\n(%.2f - %.2f)", sdnr_est, lci, hci)
+#   } else {
+#     sdnr_text = sprintf("SDNR = %.2f", sdnr_est)
+#   }
 
-  df %>% 
-  # dplyr::mutate(label = label) %>%
-    # tidyr::pivot_longer(-label) %>%
-    ggplot2::ggplot() +
-    ggplot2::stat_qq(ggplot2::aes(sample = value)) +
-    ggplot2::geom_abline(slope = 1, intercept = 0) +
-    ggplot2::labs(x = 'Theoretical quantiles', y = 'Sample quantiles') +
-    ggplot2::annotate("text", x = -Inf, y = Inf, label = sdnr_text, 
-                      hjust = -0.1, vjust = 1.2, size = 4) -> qq
-  list(osa=osa, qq=qq)
+#   df %>% 
+#   # dplyr::mutate(label = label) %>%
+#     # tidyr::pivot_longer(-label) %>%
+#     ggplot2::ggplot() +
+#     ggplot2::stat_qq(ggplot2::aes(sample = value)) +
+#     ggplot2::geom_abline(slope = 1, intercept = 0) +
+#     ggplot2::labs(x = 'Theoretical quantiles', y = 'Sample quantiles') +
+#     ggplot2::annotate("text", x = -Inf, y = Inf, label = sdnr_text, 
+#                       hjust = -0.1, vjust = 1.2, size = 4) -> qq
+#   list(osa=osa, qq=qq)
 
-}
+# }
 
 #' one-step ahead residuals for RTMB model & and Dirichlet
 #'
@@ -139,7 +139,7 @@ osa <- function(obs, pred, yrs, ind, label = 'Age', addCI = TRUE, theta = NULL, 
     df_n = length(res_vec) - 1 # degrees of freedom
     lci = sqrt(qchisq(0.025, df_n) / df_n) # lower 95% CI
     hci = sqrt(qchisq(0.975, df_n) / df_n) # upper 95% CI
-    sdnr_text = sprintf("SDNR = %.2f\nExpected (H0: %.2f - %.2f)", sdnr_est, lci, hci)
+    sdnr_text = sprintf("SDNR = %.2f\n(%.2f - %.2f)", sdnr_est, lci, hci)
   } else {
     sdnr_text = sprintf("SDNR = %.2f", sdnr_est)
   }

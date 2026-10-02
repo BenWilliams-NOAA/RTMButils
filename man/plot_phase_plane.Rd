@@ -4,9 +4,11 @@
 \alias{plot_phase_plane}
 \title{Phase plane plot}
 \usage{
-plot_phase_plane(year, output, folder = NULL, save = TRUE)
+plot_phase_plane(..., year, output, folder = NULL, save = TRUE, shade = FALSE)
 }
 \arguments{
+\item{...}{add'l ggplot inputs}
+
 \item{year}{model year}
 
 \item{output}{RTMB::run_model() output}

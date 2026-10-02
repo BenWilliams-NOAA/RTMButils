@@ -46,86 +46,90 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
     fit = output$fit
     ll = output$lower
     ul = output$upper
-    nms = unique(names(fit$par))
-    split_list = split(fit$par, names(fit$par))
-    pars = lapply(split_list, unname)
-    p0 = pars[nms]
-  
-    # put any mapped items back into the pars
-    if(!is.null(map)) {
-      p0[[names(map)]] = obj$env$parList()[[names(map)]]
-    }
+    p0 <- obj$env$parList(fit$par)
     n_years = length(years)
-  
+    
     # run retrospective peels
     message(paste("Running", n_peels, "retrospective peels..."))
     reps = list()
-    N_base_sum_catch = sum(d0$catch_ind)
-  
+      
     for (i in 1:n_peels) {
-      data = d0
-      pars = p0
+      cat("Peeling year:", i, "\n")
+      data_i = d0
+      pars_i = p0
+      map_i = map
+      lower_i = ll
+      upper_i = ul
 
       peel_indices = (n_years - i + 1):n_years
 
       # peel data based on the logic in the original script
-      data$years = head(d0$years, -i)
-      data$catch_ind = head(d0$catch_ind, -i)
-      data$catch_obs = head(d0$catch_obs, -i)
-      data$catch_wt = head(d0$catch_wt, -i)
-      lower_i = ll
-      upper_i = ul
+      data_i$years = head(d0$years, -i)
+      data_i$catch_ind = head(d0$catch_ind, -i)
+      data_i$catch_obs = head(d0$catch_obs, -i)
+      if (length(d0$catch_wt) == n_years)  data_i$catch_wt  = head(d0$catch_wt, -i)
+      
 
-      data$srv_ind[peel_indices] <- 0
+      data_i$srv_ind[peel_indices] <- 0
       if (i + 2 <= n_years) {
         peel_extra_2 = (n_years - (i + 2) + 1):n_years
-        data$fish_age_ind[peel_extra_2] <- 0
+        data_i$fish_age_ind[peel_extra_2] <- 0
       } else {
         # if peel removes all years, zero out the whole vector
-        data$fish_age_ind[] <- 0
+        data_i$fish_age_ind[] <- 0
       }
 
       if (i + 1 <= n_years) {
         peel_extra_1 =(n_years - (i + 1) + 1):n_years
-        data$srv_age_ind[peel_extra_1] <- 0
-        data$fish_size_ind[peel_extra_1] <- 0
+        data_i$srv_age_ind[peel_extra_1] <- 0
+        data_i$fish_size_ind[peel_extra_1] <- 0
       } else {
         # if peel removes all years, zero out the whole vector
-        data$srv_age_ind[] <- 0
-        data$fish_size_ind[] <- 0
+        data_i$srv_age_ind[] <- 0
+        data_i$fish_size_ind[] <- 0
       }
 
-      # make sure data works
-      data = lapply(data, unname)
+     
 
       # peel parameters
-      pars$log_Ft = head(p0$log_Ft, -i)
-      pars$log_Rt = head(p0$log_Rt, -i)
-
-      pars = lapply(pars, unname)
+    for (p_name in peel_pars) {
+        if (!is.null(pars_i[[p_name]])) {
+          pars_i[[p_name]] <- head(pars_i[[p_name]], -i)
+        }
+        if (!is.null(map_i[[p_name]])) {
+          map_i[[p_name]] <- head(map_i[[p_name]], -i)
+          if (is.factor(map_i[[p_name]])) {
+            map_i[[p_name]] <- droplevels(map_i[[p_name]])
+          }
+        }
+      }
+    # make sure data works
+    data_i = lapply(data_i, unname)
+    pars_i = lapply(pars_i, unname)
 
       # peel the bounds vectors
-      # cCheck if bounds are flat vectors matching the base model's parameter length
-      if (!is.null(lower_i) && length(lower_i) == length(fit$par)) {
+    if (!is.null(lower_i) && length(lower_i) == length(fit$par)) {
         active_names <- names(fit$par)
+        remove_mask <- rep(FALSE, length(active_names))
+        
         for (p_name in peel_pars) {
           idx <- which(active_names == p_name)
           if (length(idx) >= i) {
             remove_idx <- tail(idx, i)
-            lower_i <- lower_i[-remove_idx]
-            upper_i <- upper_i[-remove_idx]
-            active_names <- active_names[-remove_idx] 
+            remove_mask[remove_idx] <- TRUE
           }
         }
+        lower_i <- lower_i[!remove_mask]
+        upper_i <- upper_i[!remove_mask]
       } else if (is.list(lower_i)) {
         for (p_name in peel_pars) {
           if (!is.null(lower_i[[p_name]])) lower_i[[p_name]] <- head(lower_i[[p_name]], -i)
           if (!is.null(upper_i[[p_name]])) upper_i[[p_name]] <- head(upper_i[[p_name]], -i)
         }
-      }
+    }
 
       # refit model for the peel
-      new_run = run_model(model = model, data = data, pars = pars, map = map, lower=lower_i, upper=upper_i)
+      new_run = run_model(model = model, data = data_i, pars = pars_i, map = map_i, lower=lower_i, upper=upper_i)
       
       reps[[paste0('sd', i)]] <- new_run$sd
     }
@@ -293,20 +297,9 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     fit = output$fit
     ll = output$lower
     ul = output$upper
-    nms = unique(names(fit$par))
-    split_list = split(fit$par, names(fit$par))
-    pars = lapply(split_list, unname)
-    p0 = pars[nms]
+    p0 <- obj$env$parList(fit$par)
+    n_years = length(years)
   
-    # put any mapped items back into the pars
-    if(!is.null(map)) {
-      p0[[names(map)]] = obj$env$parList()[[names(map)]]
-    }
-  
-
-  base_years = output$rpt$years
-  n_years = length(base_years)
-
   # pProspective peels
   message(paste("Running", n_peels, "prospective peels..."))
   reps = list()
@@ -326,7 +319,8 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     data_i$years = tail(d0$years, -i)
     data_i$catch_ind = tail(d0$catch_ind, -i)
     data_i$catch_obs = tail(d0$catch_obs, -i)
-    data_i$catch_wt = tail(d0$catch_wt, -i)
+    if (length(d0$catch_wt) == n_years)  data_i$catch_wt  = tail(d0$catch_wt, -i)
+    # data_i$catch_wt = tail(d0$catch_wt, -i)
     data_i$srv_ind = tail(d0$srv_ind, -i)
     data_i$fish_age_ind = tail(d0$fish_age_ind, -i)
     data_i$srv_age_ind = tail(d0$srv_age_ind, -i)
@@ -344,45 +338,60 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
       keep_fa <- d0$fish_age_yrs %in% data_i$years
       data_i$fish_age_yrs <- d0$fish_age_yrs[keep_fa]
       data_i$fish_age_iss <- d0$fish_age_iss[keep_fa]
-      data_i$fish_age_obs <- d0$fish_age_obs[, keep_fa] # Slice columns
+      data_i$fish_age_obs <- d0$fish_age_obs[, keep_fa, drop = FALSE] 
     }
     if(!is.null(d0$srv_age_yrs)) {
       keep_sa <- d0$srv_age_yrs %in% data_i$years
       data_i$srv_age_yrs <- d0$srv_age_yrs[keep_sa]
       data_i$srv_age_iss <- d0$srv_age_iss[keep_sa]
-      data_i$srv_age_obs <- d0$srv_age_obs[, keep_sa]
+      data_i$srv_age_obs <- d0$srv_age_obs[, keep_sa, drop = FALSE]
     }
     if(!is.null(d0$fish_size_yrs)) {
       keep_fs <- d0$fish_size_yrs %in% data_i$years
       data_i$fish_size_yrs <- d0$fish_size_yrs[keep_fs]
       data_i$fish_size_iss <- d0$fish_size_iss[keep_fs]
-      data_i$fish_size_obs <- d0$fish_size_obs[, keep_fs]
+      data_i$fish_size_obs <- d0$fish_size_obs[, keep_fs, drop = FALSE]
     }
 
     # parameters from the START
     # Dynamically peel parameters, maps, and bounds based on the peel_pars argument
     for (p_name in peel_pars) {
-      
-      # 1. Peel the parameter list
-      if (p_name %in% names(pars_i)) {
-        pars_i[[p_name]] <- tail(p0[[p_name]], -i)
+      if (!is.null(pars_i[[p_name]])) {
+        pars_i[[p_name]] <- tail(pars_i[[p_name]], -i)
       }
-      
-      # 2. Peel the map list (if this parameter is mapped)
-      if (p_name %in% names(map_i)) {
+      if (!is.null(map_i[[p_name]])) {
         map_i[[p_name]] <- tail(map_i[[p_name]], -i)
-      }
-      
-      # 3. Peel the bounds vectors
-      if (!is.null(lower_i) && !is.null(upper_i)) {
-        idx_lower <- which(names(lower_i) == p_name)
-        idx_upper <- which(names(upper_i) == p_name)
-        
-        # Remove the first 'i' elements
-        if (length(idx_lower) >= i) lower_i <- lower_i[-idx_lower[1:i]]
-        if (length(idx_upper) >= i) upper_i <- upper_i[-idx_upper[1:i]]
+        if (is.factor(map_i[[p_name]])) {
+          map_i[[p_name]] <- droplevels(map_i[[p_name]])
+        }
       }
     }
+    if (!is.null(lower_i) && length(lower_i) == length(fit$par)) {
+      active_names <- names(fit$par)
+      remove_mask <- rep(FALSE, length(active_names))
+
+      for (p_name in peel_pars) {
+        idx <- which(active_names == p_name)
+        if (length(idx) >= i) {
+          # Use head() because prospective peeling removes early years
+          remove_idx <- head(idx, i)
+          remove_mask[remove_idx] <- TRUE
+        }
+      }
+      lower_i <- lower_i[!remove_mask]
+      upper_i <- upper_i[!remove_mask]
+      
+    } else if (is.list(lower_i)) {
+      for (p_name in peel_pars) {
+        if (!is.null(lower_i[[p_name]])) lower_i[[p_name]] <- tail(lower_i[[p_name]], -i)
+        if (!is.null(upper_i[[p_name]])) upper_i[[p_name]] <- tail(upper_i[[p_name]], -i)
+      }
+    }
+
+
+    data_i <- lapply(data_i, unname)
+    pars_i <- lapply(pars_i, unname)
+
     # Refit model
     # Note: bounds (lower/upper) might need slicing if they are vectors!
     new_run <- run_model(model = model, data = data_i, pars = pars_i,

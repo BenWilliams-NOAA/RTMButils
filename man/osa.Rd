@@ -14,17 +14,6 @@ osa(
   theta = NULL,
   seed = 99801
 )
-
-osa(
-  obs,
-  pred,
-  yrs,
-  ind,
-  label = "Age",
-  addCI = TRUE,
-  theta = NULL,
-  seed = 99801
-)
 }
 \arguments{
 \item{obs}{observed comp - input sample size and comp weighting adjusted}
@@ -47,8 +36,6 @@ osa(
 }
 \description{
 one-step ahead residuals for RTMB model
-
-one-step ahead residuals for RTMB model & and Dirichlet
 }
 \examples{
 \dontrun{
@@ -60,6 +47,8 @@ ind = ages
 osa(obs = fish_age_obs, pred = report1$fish_age_pred, iss = data$fish_age_iss,
     yrs = fish_age_yrs, ind = ages) +  ggtitle('osa fishery age comp residuals')
 }
+one-step ahead residuals for RTMB model & and Dirichlet
+
 \dontrun{
 obs = fish_age_obs
 pred = report1$fish_age_pred

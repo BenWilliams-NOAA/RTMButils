@@ -4,16 +4,16 @@
 \alias{plot_rec_ssb}
 \title{Recruitment/SSB plot}
 \usage{
-plot_rec_ssb(year, output, folder = NULL, save = TRUE)
+plot_rec_ssb(output, folder = NULL, save = TRUE)
 }
 \arguments{
-\item{year}{model year}
-
 \item{output}{RTMB::run_model() output}
 
 \item{folder}{folder model is in}
 
 \item{save}{default is TRUE, saves fig to the folder the model is in}
+
+\item{year}{model year}
 }
 \description{
 Recruitment/SSB plot
