@@ -4,12 +4,13 @@
 \alias{get_pars}
 \title{pull parameters from report and projection}
 \usage{
-get_pars(rpt, model = "Model", addl = NULL, exclude = NULL)
+get_pars(output, model = "Model", addl = NULL, exclude = NULL)
 }
 \arguments{
-\item{rpt}{model report}
+\item{output}{The output from the `RTMButils::run_model()` function for the
+full dataset. Must contain `obj` (from RTMB::MakeADFun) and `rpt` (the report)}
 
-\item{model}{name for column}
+\item{model}{model name for column}
 
 \item{addl}{any additional parameters to pull}
 

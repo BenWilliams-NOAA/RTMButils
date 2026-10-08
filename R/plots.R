@@ -364,23 +364,24 @@ plot_sd_ribbon <- function(..., var_pattern = "^spawn_bio",
       dplyr::rename(value = Estimate, se = `Std. Error`)
     
     # Case 1: Special handling for log_Ft deviations
-    if (stringr::str_detect(var_pattern, "log_Ft") && !is_deviate) {
-      log_mean_F <- sd_sum %>% 
-        dplyr::filter(item == "log_mean_F") %>% 
-        dplyr::pull(value)
+    # if (stringr::str_detect(var_pattern, "log_Ft") && !is_deviate) {
+    #   log_mean_F <- sd_sum %>% 
+    #     dplyr::filter(item == "log_mean_F") %>% 
+    #     dplyr::pull(value)
       
-      res <- sd_sum %>%
-        dplyr::filter(stringr::str_detect(item, var_pattern)) %>%
-        dplyr::mutate(
-          log_F_total = value + log_mean_F,
-          se_F = exp(log_F_total) * se,
-          value = exp(log_F_total),
-          lci = pmax(0, value - 1.96 * se_F),
-          uci = value + 1.96 * se_F
-        )
+    #   res <- sd_sum %>%
+    #     dplyr::filter(stringr::str_detect(item, var_pattern)) %>%
+    #     dplyr::mutate(
+    #       log_F_total = value + log_mean_F,
+    #       se_F = exp(log_F_total) * se,
+    #       value = exp(log_F_total),
+    #       lci = pmax(0, value - 1.96 * se_F),
+    #       uci = value + 1.96 * se_F
+    #     )
       
-    # Case 2: Standard log-space variables (e.g., log_recruits)
-    } else if (log_space) {
+    # # Case 2: Standard log-space variables (e.g., log_recruits)
+    # } else 
+    if (log_space) {
       res <- sd_sum %>%
         dplyr::filter(stringr::str_detect(item, var_pattern)) %>%
         dplyr::mutate(
@@ -460,3 +461,4 @@ plot_rec_ssb <- function(output, folder = NULL, save = TRUE) {
   
   fig
 }
+

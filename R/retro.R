@@ -135,8 +135,8 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
     }
 
     if (save_outputs) {
-      saveRDS(reps, file.path(retro_path, 'reps.RDS'))
-      message(paste("Retrospective fits saved to:", file.path(retro_path, 'reps.RDS')))
+      saveRDS(reps, file.path(retro_path, 'retro_reps.RDS'))
+      message(paste("Retrospective fits saved to:", file.path(retro_path, 'retro_reps.RDS')))
     }
 
     # process outputs
@@ -265,7 +265,7 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
     ))
 }
 
-#' Run a prospective analysis (peeling from the start) for an RTMB stock assessment model.
+#' Run a starting year sensitivity analysis (peeling from the start) for an RTMB stock assessment model.
 #'
 #' @param output The output list from the `run_model()` function.
 #' @param n_peels The number of historical years to remove from the start (integer).
@@ -277,14 +277,14 @@ run_retro <- function(output, n_peels = 10, year, folder, subfolder = NULL,
 #' @param save_outputs Logical. If TRUE, saves results and plots.
 #'
 #' @export
-run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
+run_start_year_sensitivity <- function(output, n_peels = 10, year, folder, subfolder = NULL,
                             quantities = c("spawn_bio", "tot_bio", "recruits"),
                             peel_pars = c("log_Ft", "log_Rt"),
                             save_outputs = TRUE) {
 
   # setup
   message("Starting prospective analysis...")
-  pros_path <- herein(year, folder, subfolder, "prospective")
+  pros_path <- herein(year, folder, subfolder, "retro")
   if (save_outputs && !dir.exists(pros_path)) {
     dir.create(pros_path, recursive = TRUE)
   }
@@ -393,7 +393,6 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     pars_i <- lapply(pars_i, unname)
 
     # Refit model
-    # Note: bounds (lower/upper) might need slicing if they are vectors!
     new_run <- run_model(model = model, data = data_i, pars = pars_i,
                          map = map_i, lower = lower_i, upper = upper_i)
 
@@ -427,8 +426,8 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
   # combine
   dplyr::bind_rows(retro_df, base_df = base_sds) %>%
     dplyr::group_by(peel, item) %>%
-    # For prospective, the first year of the peel is 'peel + 1' index of base_years
-    dplyr::mutate(year = base_years[(unique(peel) + 1):n_years]) %>%
+    # For prospective, the first year of the peel is 'peel + 1' index of base_ears
+    dplyr::mutate(year = years[(unique(peel) + 1):n_years]) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
       lci = pmax(0, Estimate - 1.96 * Std_Error),
@@ -444,35 +443,53 @@ run_prospective <- function(output, n_peels = 5, year, folder, subfolder = NULL,
     plot_title = gsub("_", " ", qty)
     plot_title = paste0(toupper(substring(plot_title, 1, 1)), substring(plot_title, 2))
 
-    p1 <- ggplot2::ggplot(plot_data_qty, ggplot2::aes(x = year, y = Estimate, color = peel, group = peel)) +
-      ggplot2::geom_line() +
-      scico::scale_color_scico_d("Years Removed\nfrom Start", palette = 'roma') +
-      ggplot2::scale_y_continuous(labels = scales::comma) +
-      ggplot2::labs(y = plot_title, x = "Year", title = paste("Prospective Analysis:", plot_title))
-
     p2_data <- plot_data_qty %>%
       dplyr::filter(peel != 0) %>%
       dplyr::left_join(plot_data_qty %>%
                          dplyr::filter(peel == 0) %>%
                          dplyr::select(year, base_est = Estimate), by = "year") %>%
-      dplyr::mutate(pdiff = (Estimate - base_est) / base_est)
+      dplyr::mutate(pdiff = (Estimate - base_est) / base_est) %>% 
+      tidyr::drop_na()
 
-    p2 <- ggplot2::ggplot(p2_data, ggplot2::aes(x = year, y = pdiff, color = peel, group = peel)) +
-      ggplot2::geom_line(show.legend = FALSE) +
-      scico::scale_color_scico_d(palette = 'roma') +
-      ggplot2::geom_hline(yintercept = 0, linetype = 3) +
-      ggplot2::scale_y_continuous(labels = scales::percent) +
-      ggplot2::labs(y = "% Diff from Base", x = "Year")
+    mean_diff <- mean(p2_data$pdiff, na.rm = TRUE)
+    mae <- mean(abs(p2_data$pdiff), na.rm = TRUE)
+    l1 <- sprintf("Mean Diff = %.2f", mean_diff)
+    l2 <- sprintf("MAE = %.2f", mae)
 
+    annot_x = min(plot_data_qty$year) + 1 
+    annot_y = max(plot_data_qty$uci, na.rm = TRUE) * 0.9
+    
+     p1 <- ggplot2::ggplot(plot_data_qty,
+                            ggplot2::aes(x = year, y = Estimate, color = peel, group = peel, fill = peel)) +
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = lci, ymax = uci), alpha = 0.1, color = NA) +
+        ggplot2::geom_line() +
+        scico::scale_color_scico_d("Peel", palette = 'roma', direction = -1) +
+        scico::scale_fill_scico_d("Peel", palette = 'roma', direction = -1) +
+        ggplot2::annotate(geom = 'text',
+                          x = annot_x,
+                          y = annot_y,
+                          label = paste(l1, l2, sep = "\n"),
+                          hjust = 0) +
+        ggplot2::scale_y_continuous(labels = scales::comma) +
+        ggplot2::labs(y = paste(plot_title, "(t)"), x = "Year", title = paste("Start year sensitivity:", plot_title)) +
+        ggplot2::expand_limits(y = 0)
+
+      p2 <- ggplot2::ggplot(p2_data, ggplot2::aes(year, pdiff, color = peel, group = peel)) +
+        ggplot2::geom_line(show.legend = FALSE) +
+        scico::scale_color_scico_d("Peel", palette = 'roma', direction = -1) +
+        ggplot2::geom_hline(yintercept = 0, linetype = 3) +
+        ggplot2::scale_y_continuous(labels = scales::percent) +
+        ggplot2::labs(y = "Relative Difference from Base", x = "Year")
+    
     combined_plot <- patchwork::wrap_plots(p1, p2, ncol = 1, heights = c(3, 1))
     plot_list[[qty]] <- combined_plot
 
     if(save_outputs) {
-      ggplot2::ggsave(file.path(pros_path, paste0(qty, "_prospective.png")), combined_plot, width = 8, height = 8)
+      ggplot2::ggsave(file.path(pros_path, paste0(qty, "_start_year_sensitivity.png")), combined_plot, width = 8, height = 8)
     }
   }
 
-  if (save_outputs) saveRDS(all_data, file.path(pros_path, 'prospective_data.RDS'))
+  if (save_outputs) saveRDS(all_data, file.path(pros_path, 'start_year_sensitivity_data.RDS'))
 
   return(list(prospect_data = all_data, plots = plot_list))
 }

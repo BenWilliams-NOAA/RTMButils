@@ -4,10 +4,10 @@
 \alias{get_likes}
 \title{pull likelihoods from report}
 \usage{
-get_likes(rpt, model = "Model", addl = NULL, exclude = NULL)
+get_likes(output, model = "Model", addl = NULL, exclude = NULL)
 }
 \arguments{
-\item{rpt}{The output list from the `run_model()` function for the
+\item{output}{The output from the `RTMButils::run_model()` function for the
 full dataset. Must contain `obj` (from RTMB::MakeADFun) and `rpt` (the report)}
 
 \item{model}{name for column}
